@@ -4,6 +4,7 @@ import Instrument from '@/models/Instrument';
 import Transaction from '@/models/Transaction';
 import ManualAsset from '@/models/ManualAssets';
 import DailySnapshot from '@/models/DailySnapshots';
+import { refreshAllPrices } from '@/lib/prices';
 
 function verifyCronSecret(req: NextRequest): boolean {
     const authHeader = req.headers.get('authorization');
@@ -33,20 +34,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function refreshPrices() {
-    const instruments = await Instrument.find({ isActive: true });
-
-    const results = { updated: 0, failed: 0, errors: [] as string[] };
-
-    for (const instrument of instruments) {
-        try {
-            console.log(`Would fetch price for: ${instrument.tickerSymbol} (${instrument.assetType})`);
-            results.updated++;
-        } catch (error: any) {
-            results.failed++;
-            results.errors.push(`${instrument.tickerSymbol}: ${error.message}`);
-        }
-    }
-
+    const results = await refreshAllPrices();
     return NextResponse.json({ message: 'Price refresh complete', results });
 }
 
