@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+
 
 export function middleware(req: NextRequest) {
     const token = req.cookies.get('portfolio-token')?.value;
@@ -10,7 +10,7 @@ export function middleware(req: NextRequest) {
         return NextResponse.next();
     }
 
-    if (!token || !verifyToken(token)) {
+    if (!token) {
         if (pathname.startsWith('/api/')) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

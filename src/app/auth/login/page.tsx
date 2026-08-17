@@ -30,7 +30,7 @@ export default function LoginPage() {
                 return;
             }
 
-            router.push('/dashboard');
+            window.location.href = '/dashboard';
         } catch {
             setError('Something went wrong');
         } finally {
