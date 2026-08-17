@@ -1,0 +1,67 @@
+.page {
+    animation: fadeIn 0.4s ease;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.summary {
+    display: flex;
+    gap: 48px;
+    padding: 24px 32px;
+    margin-bottom: 24px;
+}
+
+.summaryLabel {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.summaryValue {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.chartCard {
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.loading,
+.empty {
+    text-align: center;
+    padding: 60px;
+    color: var(--text-muted);
+}
+
+.tableCard {
+    padding: 24px;
+}
+
+.sectionTitle {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

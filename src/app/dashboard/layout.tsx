@@ -8,8 +8,9 @@ const NAV_ITEMS = [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Holdings', path: '/dashboard/holdings' },
     { label: 'Transactions', path: '/dashboard/transactions' },
-    { label: 'Manual Assets', path: '/dashboard/manual-assets' },
+    { label: 'Manual Assets', path: '/dashboard/manualassets' },
     { label: 'History', path: '/dashboard/history' },
+    { label: 'Import', path: '/dashboard/import' },
 ];
 
 function DashboardShell({ children }: { children: React.ReactNode }) {

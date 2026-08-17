@@ -1,0 +1,164 @@
+.page {
+    animation: fadeIn 0.4s ease;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+}
+
+.card {
+    padding: 32px;
+    margin-bottom: 24px;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+}
+
+.fileInput {
+    padding: 20px;
+    border: 2px dashed var(--border-subtle);
+    border-radius: var(--radius-md);
+    text-align: center;
+    transition: border-color var(--transition-fast);
+}
+
+.fileInput:hover {
+    border-color: var(--border-hover);
+}
+
+.fileName {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+}
+
+.results {
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.resultsTitle {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.statsRow {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.statBox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    background: var(--bg-glass);
+    border-radius: var(--radius-md);
+}
+
+.statNumber {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent-primary);
+}
+
+.statLabel {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.errorList {
+    padding: 16px;
+    background: rgba(248, 113, 113, 0.08);
+    border-radius: var(--radius-sm);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.errorList h4 {
+    font-size: 13px;
+    color: var(--color-loss);
+    margin-bottom: 8px;
+}
+
+.errorItem {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.errorMsg {
+    text-align: center;
+    color: var(--color-loss);
+    padding: 12px;
+    background: rgba(248, 113, 113, 0.1);
+    border-radius: var(--radius-sm);
+    margin-bottom: 24px;
+}
+
+.instructions {
+    padding: 24px;
+}
+
+.instructionsTitle {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.instructionBlock {
+    margin-bottom: 16px;
+}
+
+.instructionBlock h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent-primary);
+    margin-bottom: 8px;
+}
+
+.steps {
+    padding-left: 20px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.steps li {
+    margin-bottom: 6px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
