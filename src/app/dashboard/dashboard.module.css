@@ -14,179 +14,208 @@
     font-size: 15px;
 }
 
+/* -- hero card -- */
 .hero {
-    padding: 32px;
-}
-
-.heroMain {
+    background: #0d1926;
+    border: 1px solid rgba(233, 231, 224, 0.12);
+    border-radius: 14px;
+    padding: 30px 32px 0;
     margin-bottom: 24px;
+    overflow: hidden;
 }
 
 .heroLabel {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #7c8794;
+    margin-bottom: 10px;
 }
 
 .heroValue {
-    font-size: 36px;
-    font-weight: 800;
-    letter-spacing: -1px;
-    margin-bottom: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 52px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 14px;
+    color: #e9e7e0;
 }
 
-.heroChanges {
+.heroDeltas {
     display: flex;
     align-items: center;
-    gap: 20px;
-    font-size: 15px;
+    gap: 16px;
+    padding-bottom: 26px;
+    font-size: 13px;
+}
+
+.delta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Inter', sans-serif;
+}
+
+.amt {
+    color: #60a5fa;
     font-weight: 600;
 }
 
-.changeBlock {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.amt.loss {
+    color: #c96a5c;
 }
 
-.changeDivider {
+.ctx {
+    color: #7c8794;
+    font-family: 'Inter', sans-serif;
+}
+
+.deltaSep {
     width: 1px;
-    height: 20px;
-    background: var(--border-subtle);
+    height: 14px;
+    background: rgba(233, 231, 224, 0.12);
 }
 
-.heroChangeLabel {
-    font-size: 12px;
-    color: var(--text-muted);
-    font-weight: 400;
-}
-
-.heroStats {
+/* -- ledger strip -- */
+.ledgerStrip {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border-subtle);
+    border-top: 1px solid rgba(233, 231, 224, 0.07);
 }
 
-.card {
-    padding: 1.25rem;
-    background-color: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    border-radius: 16px;
-    transition: transform 0.2s ease, background-color 0.2s ease;
+.lcol {
+    padding: 20px 24px 22px;
+    border-right: 1px solid rgba(233, 231, 224, 0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
 }
 
-.card:hover {
-    background-color: rgba(255, 255, 255, 0.04);
-    transform: translateY(-2px);
+.lcol:last-child {
+    border-right: none;
 }
 
-.cardTitle {
+.lcolHead {
     display: flex;
     align-items: center;
+    gap: 9px;
 }
 
-.cardIcon {
+.lcolHead svg {
+    opacity: 0.8;
+    flex-shrink: 0;
+    color: #7c8794;
+}
+
+.lname {
+    font-size: 12.5px;
+    color: #7c8794;
+    font-weight: 500;
+}
+
+.lchip {
+    margin-left: auto;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.lchip.pos {
+    color: #60a5fa;
+}
+
+.lchip.neg {
+    color: #c96a5c;
+}
+
+.lcolVal {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    color: #e9e7e0;
+}
+
+.ltrack {
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(233, 231, 224, 0.12);
+    overflow: hidden;
     position: relative;
-    padding: 0.5rem;
-    background-color: #10B981;
-    width: 2rem;
-    height: 2rem;
-    border-radius: 9999px;
+}
+
+.lfill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: #3b82f6;
+    border-radius: 2px;
+}
+
+.lfill.purple { background-color: #8b5cf6; }
+.lfill.orange { background-color: #f59e0b; }
+.lfill.red { background-color: #c96a5c; }
+
+.ltrack.empty {
+    background-image: repeating-linear-gradient(90deg, #4d5966 0 4px, transparent 4px 8px);
+    background-color: transparent;
+    opacity: 0.4;
+}
+
+.ltrack.empty .lfill {
+    display: none;
+}
+
+/* -- holdings -- */
+.tableCard {
+    background: #0d1926;
+    border: 1px solid rgba(233, 231, 224, 0.12);
+    border-radius: 14px;
+    padding: 26px 32px 40px;
+}
+
+.sectionTitle {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 17px;
+    margin-bottom: 24px;
+    color: #e9e7e0;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 52px 20px 16px;
+    gap: 14px;
+}
+
+.emptyIcon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #101d2c;
+    border: 1px solid rgba(233, 231, 224, 0.12);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.cardIcon.blue { background-color: #3b82f6; }
-.cardIcon.purple { background-color: #8b5cf6; }
-.cardIcon.orange { background-color: #f59e0b; }
-
-.cardIcon svg {
-    color: #ffffff;
-    height: 1.2rem;
-    width: 1.2rem;
-}
-
-.cardTitleText {
-    margin-left: 0.75rem;
-    color: var(--text-secondary);
+.emptyState h3 {
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 600;
+    color: #e9e7e0;
 }
 
-.cardPercent {
-    margin-left: auto;
-    color: #10B981;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
+.emptyState p {
     font-size: 13px;
-    gap: 2px;
-}
-
-.cardPercent.loss {
-    color: var(--color-loss);
-}
-
-.cardData {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-}
-
-.cardDataValue {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-    color: #ffffff;
-    font-size: 2rem;
-    line-height: 2.25rem;
-    font-weight: 700;
-    text-align: left;
-    letter-spacing: -0.5px;
-}
-
-.cardRange {
-    position: relative;
-    background-color: rgba(255, 255, 255, 0.1);
-    width: 100%;
-    height: 0.35rem;
-    border-radius: 0.25rem;
-    overflow: hidden;
-}
-
-.cardRangeFill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    background-color: #10B981;
-    height: 100%;
-    border-radius: 0.25rem;
-    transition: width 1s ease-out;
-}
-
-.cardRangeFill.blue { background-color: #3b82f6; }
-.cardRangeFill.purple { background-color: #8b5cf6; }
-.cardRangeFill.orange { background-color: #f59e0b; }
-.cardRangeFill.red { background-color: var(--color-loss); }
-
-.tableCard {
-    padding: 24px;
-}
-
-.sectionTitle {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 16px;
-}
-
-.emptyState {
-    text-align: center;
-    padding: 40px;
-    color: var(--text-muted);
-    font-size: 14px;
+    color: #7c8794;
+    max-width: 340px;
+    line-height: 1.5;
 }
 
 .holdingName {
@@ -195,7 +224,7 @@
 
 .holdingTicker {
     font-size: 12px;
-    color: var(--text-muted);
+    color: #7c8794;
     margin-top: 2px;
 }
 

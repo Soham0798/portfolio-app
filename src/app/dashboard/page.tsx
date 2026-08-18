@@ -70,102 +70,105 @@ export default function DashboardPage() {
     return (
         <div className={styles.page}>
             {summary && (
-                <div className={`glass-card ${styles.hero}`}>
-                    <div className={styles.heroMain}>
-                        <p className={styles.heroLabel}>Total Portfolio Value</p>
-                        <h2 className={styles.heroValue}>{formatCurrency(summary.totalValue)}</h2>
-                        <div className={styles.heroChanges}>
-                            <div className={styles.changeBlock}>
-                                <span className={summary.totalDayGain >= 0 ? 'gain' : 'loss'}>
-                                    {summary.totalDayGain >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(summary.totalDayGain))} ({formatPercent(summary.totalDayGainPercent)})
-                                </span>
-                                <span className={styles.heroChangeLabel}>Today</span>
-                            </div>
-                            <div className={styles.changeDivider}></div>
-                            <div className={styles.changeBlock}>
-                                <span className={summary.totalGain >= 0 ? 'gain' : 'loss'}>
-                                    {summary.totalGain >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(summary.totalGain))} ({formatPercent(summary.totalGainPercent)})
-                                </span>
-                                <span className={styles.heroChangeLabel}>Overall</span>
-                            </div>
+                <div className={styles.hero}>
+                    <div className={styles.heroLabel}>Total Portfolio Value</div>
+                    <div className={styles.heroValue}>{formatCurrency(summary.totalValue)}</div>
+                    <div className={styles.heroDeltas}>
+                        <div className={styles.delta}>
+                            <span className={`${styles.amt} ${summary.totalDayGain < 0 ? styles.loss : ''}`}>
+                                {summary.totalDayGain >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(summary.totalDayGain))} ({formatPercent(Math.abs(summary.totalDayGainPercent))})
+                            </span>
+                            <span className={styles.ctx}>Today</span>
+                        </div>
+                        <div className={styles.deltaSep}></div>
+                        <div className={styles.delta}>
+                            <span className={`${styles.amt} ${summary.totalGain < 0 ? styles.loss : ''}`}>
+                                {summary.totalGain >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(summary.totalGain))} ({formatPercent(Math.abs(summary.totalGainPercent))})
+                            </span>
+                            <span className={styles.ctx}>Overall</span>
                         </div>
                     </div>
 
-                    <div className={styles.heroStats}>
-                        {/* Total Invested */}
-                        <div className={styles.card}>
-                            <div className={styles.cardTitle}>
-                                <span className={`${styles.cardIcon} ${styles.blue}`}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h0M2 9.5h20"/></svg>
-                                </span>
-                                <p className={styles.cardTitleText}>Invested</p>
+                    <div className={styles.ledgerStrip}>
+                        {/* Invested */}
+                        <div className={styles.lcol}>
+                            <div className={styles.lcolHead}>
+                                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3">
+                                    <rect x="1.5" y="3.5" width="12" height="8.5" rx="1.3" />
+                                    <path d="M1.5 6.2H13.5" strokeLinecap="round" />
+                                </svg>
+                                <span className={styles.lname}>Invested</span>
                             </div>
-                            <div className={styles.cardData}>
-                                <p className={styles.cardDataValue}>{formatCurrency(summary.totalInvested)}</p>
-                                <div className={styles.cardRange}>
-                                    <div className={`${styles.cardRangeFill} ${styles.blue}`} style={{ width: '100%' }}></div>
-                                </div>
+                            <div className={styles.lcolVal}>{formatCurrency(summary.totalInvested)}</div>
+                            <div className={summary.totalInvested === 0 ? `${styles.ltrack} ${styles.empty}` : styles.ltrack}>
+                                <div className={`${styles.lfill} ${styles.blue}`} style={{ width: '100%' }}></div>
                             </div>
                         </div>
 
                         {/* Total Gain */}
-                        <div className={styles.card}>
-                            <div className={styles.cardTitle}>
-                                <span className={styles.cardIcon}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                                </span>
-                                <p className={styles.cardTitleText}>Total Gain</p>
-                                <p className={`${styles.cardPercent} ${summary.totalGain < 0 ? styles.loss : ''}`}>
+                        <div className={styles.lcol}>
+                            <div className={styles.lcolHead}>
+                                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3">
+                                    <path d="M1.5 11L5.5 6.5L8 9L13.5 3" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M9.8 3H13.5V6.7" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                <span className={styles.lname}>Total Gain</span>
+                                <span className={`${styles.lchip} ${summary.totalGain >= 0 ? styles.pos : styles.neg}`}>
                                     {summary.totalGain >= 0 ? '▲' : '▼'} {Math.abs(summary.totalGainPercent).toFixed(2)}%
-                                </p>
+                                </span>
                             </div>
-                            <div className={styles.cardData}>
-                                <p className={styles.cardDataValue}>{formatCurrency(Math.abs(summary.totalGain))}</p>
-                                <div className={styles.cardRange}>
-                                    <div className={`${styles.cardRangeFill} ${summary.totalGain < 0 ? styles.red : ''}`} style={{ width: `${Math.min(Math.abs(summary.totalGainPercent), 100)}%` }}></div>
-                                </div>
+                            <div className={styles.lcolVal}>{formatCurrency(Math.abs(summary.totalGain))}</div>
+                            <div className={summary.totalInvested === 0 ? `${styles.ltrack} ${styles.empty}` : styles.ltrack}>
+                                <div className={`${styles.lfill} ${summary.totalGain < 0 ? styles.red : ''}`} style={{ width: `${Math.min(Math.abs(summary.totalGainPercent), 100)}%` }}></div>
                             </div>
                         </div>
 
                         {/* Market Assets */}
-                        <div className={styles.card}>
-                            <div className={styles.cardTitle}>
-                                <span className={`${styles.cardIcon} ${styles.purple}`}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-                                </span>
-                                <p className={styles.cardTitleText}>Market Assets</p>
+                        <div className={styles.lcol}>
+                            <div className={styles.lcolHead}>
+                                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3">
+                                    <path d="M2.5 12.5V6.5M7.5 12.5V2.5M12.5 12.5V9" strokeLinecap="round" />
+                                </svg>
+                                <span className={styles.lname}>Market Assets</span>
                             </div>
-                            <div className={styles.cardData}>
-                                <p className={styles.cardDataValue}>{formatCurrency(summary.marketValue)}</p>
-                                <div className={styles.cardRange}>
-                                    <div className={`${styles.cardRangeFill} ${styles.purple}`} style={{ width: `${summary.totalValue > 0 ? (summary.marketValue / summary.totalValue) * 100 : 0}%` }}></div>
-                                </div>
+                            <div className={styles.lcolVal}>{formatCurrency(summary.marketValue)}</div>
+                            <div className={summary.totalValue === 0 ? `${styles.ltrack} ${styles.empty}` : styles.ltrack}>
+                                <div className={`${styles.lfill} ${styles.purple}`} style={{ width: `${(summary.marketValue / summary.totalValue) * 100}%` }}></div>
                             </div>
                         </div>
 
                         {/* Manual Assets */}
-                        <div className={styles.card}>
-                            <div className={styles.cardTitle}>
-                                <span className={`${styles.cardIcon} ${styles.orange}`}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/></svg>
-                                </span>
-                                <p className={styles.cardTitleText}>Manual Assets</p>
+                        <div className={styles.lcol}>
+                            <div className={styles.lcolHead}>
+                                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3">
+                                    <rect x="1.5" y="4" width="12" height="9" rx="1.3" />
+                                    <path d="M1.5 4L3 1.5H12L13.5 4" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M6 7.2H9" strokeLinecap="round" />
+                                </svg>
+                                <span className={styles.lname}>Manual Assets</span>
                             </div>
-                            <div className={styles.cardData}>
-                                <p className={styles.cardDataValue}>{formatCurrency(summary.manualValue)}</p>
-                                <div className={styles.cardRange}>
-                                    <div className={`${styles.cardRangeFill} ${styles.orange}`} style={{ width: `${summary.totalValue > 0 ? (summary.manualValue / summary.totalValue) * 100 : 0}%` }}></div>
-                                </div>
+                            <div className={styles.lcolVal}>{formatCurrency(summary.manualValue)}</div>
+                            <div className={summary.totalValue === 0 ? `${styles.ltrack} ${styles.empty}` : styles.ltrack}>
+                                <div className={`${styles.lfill} ${styles.orange}`} style={{ width: `${(summary.manualValue / summary.totalValue) * 100}%` }}></div>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            <div className={`glass-card ${styles.tableCard}`}>
+            <div className={styles.tableCard}>
                 <h3 className={styles.sectionTitle}>Holdings</h3>
                 {holdings.length === 0 ? (
-                    <p className={styles.emptyState}>No holdings yet. Add transactions to get started.</p>
+                    <div className={styles.emptyState}>
+                        <div className={styles.emptyIcon}>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#7c8794" strokeWidth="1.4">
+                                <rect x="3" y="2.5" width="14" height="15" rx="1.6" />
+                                <path d="M6.5 6.5H13.5M6.5 9.5H13.5M6.5 12.5H10.5" strokeLinecap="round" />
+                            </svg>
+                        </div>
+                        <h3>No holdings yet</h3>
+                        <p>Add a transaction or import your existing portfolio and your positions will show up here automatically.</p>
+                    </div>
                 ) : (
                     <table className="table">
                         <thead>

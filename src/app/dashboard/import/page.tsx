@@ -83,7 +83,7 @@ export default function ImportPage() {
                         </div>
                     </div>
 
-                    <button type="submit" className="btn-primary" disabled={loading || !file} style={{ width: '100%' }}>
+                    <button type="submit" className={styles.importBtn} disabled={loading || !file} style={{ width: '100%' }}>
                         {loading ? 'Importing...' : 'Import Transactions'}
                     </button>
                 </form>

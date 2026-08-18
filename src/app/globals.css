@@ -165,33 +165,44 @@ body {
 
 .tab-group {
   display: inline-flex;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  padding: 3px;
+  align-items: center;
   gap: 2px;
+  background: #0d1926;
+  border: 1px solid rgba(233, 231, 224, 0.12);
+  border-radius: 10px;
+  padding: 3px;
 }
 
 .tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
+  border-radius: 7px;
+  font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 500;
-  font-family: inherit;
+  color: #7c8794;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background 0.15s ease, color 0.15s ease;
+  background: transparent;
+  border: none;
+}
+
+.tab .pdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
 }
 
 .tab:hover {
-  color: var(--text-primary);
+  color: #e9e7e0;
 }
 
 .tab.active {
-  background: var(--bg-glass);
-  color: var(--text-primary);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  background: #132234;
+  color: #e9e7e0;
+  font-weight: 600;
 }
 
 .table {

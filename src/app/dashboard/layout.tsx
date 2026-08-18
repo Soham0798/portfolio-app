@@ -188,16 +188,24 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
             <main className={styles.main}>
                 <header className={styles.topBar}>
-                    <div className="tab-group">
-                        {(['sameer', 'snehal', 'combined'] as const).map((p) => (
-                            <button
-                                key={p}
-                                className={`tab ${profile === p ? 'active' : ''}`}
-                                onClick={() => setProfile(p)}
-                            >
-                                {p.charAt(0).toUpperCase() + p.slice(1)}
-                            </button>
-                        ))}
+                    <div className="tab-group" style={{ marginBottom: '16px' }}>
+                        {(['sameer', 'snehal', 'combined'] as const).map((p) => {
+                            let dotStyle = {};
+                            if (p === 'sameer') dotStyle = { background: '#5b8fe0' };
+                            else if (p === 'snehal') dotStyle = { background: '#9b82e3' };
+                            else dotStyle = { background: 'linear-gradient(90deg, #5b8fe0, #9b82e3)' };
+
+                            return (
+                                <button
+                                    key={p}
+                                    className={`tab ${profile === p ? 'active' : ''}`}
+                                    onClick={() => setProfile(p)}
+                                >
+                                    <span className="pdot" style={dotStyle}></span>
+                                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                                </button>
+                            );
+                        })}
                     </div>
                 </header>
 
