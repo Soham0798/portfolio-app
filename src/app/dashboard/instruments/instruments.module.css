@@ -1,0 +1,113 @@
+.page { animation: fadeIn 0.4s ease; }
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.title { font-size: 20px; font-weight: 700; }
+
+.filters {
+    margin-bottom: 20px;
+    overflow-x: auto;
+}
+
+.tableCard { padding: 24px; margin-bottom: 24px; }
+.empty { text-align: center; padding: 40px; color: var(--text-muted); }
+
+.instName { font-weight: 500; }
+.ticker { font-family: monospace; font-size: 13px; color: var(--text-secondary); }
+
+.typeBadge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    background: rgba(52, 211, 153, 0.12);
+    color: var(--accent-primary);
+}
+
+.actions { display: flex; gap: 6px; }
+.editBtn {
+    padding: 4px 10px;
+    background: none;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+.editBtn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+.deleteBtn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all var(--transition-fast);
+}
+.deleteBtn:hover { color: var(--color-loss); background: rgba(248, 113, 113, 0.1); }
+
+/* Help Card */
+.helpCard { padding: 24px; }
+.helpTitle { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.helpGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+.helpGrid h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-primary);
+    margin-bottom: 6px;
+}
+.helpGrid p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+.helpGrid code {
+    background: var(--bg-glass);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11px;
+    color: var(--text-primary);
+}
+
+/* Modal */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+.modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 32px;
+    width: 100%;
+    max-width: 480px;
+}
+.modalTitle { font-size: 18px; font-weight: 600; margin-bottom: 24px; }
+.form { display: flex; flex-direction: column; gap: 16px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: flex; flex-direction: column; }
+.formActions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

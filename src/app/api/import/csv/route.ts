@@ -121,20 +121,83 @@ async function parseZerodha(lines: string[], userId: string, profile: string) {
 async function parseGroww(lines: string[], userId: string, profile: string) {
     const results = { imported: 0, skipped: 0, errors: [] as string[] };
 
-    for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim().replace(/"/g, ''));
+    let isMF = false;
+    let colMap: Record<string, number> = {
+        name: 0,
+        type: 3,
+        date: 2,
+        qty: 4,
+        price: 5,
+        symbol: 1
+    };
 
-        if (cols.length < 6) {
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        const cols = line.split(',').map(c => c.trim().replace(/"/g, ''));
+
+        // Detect headers and map columns dynamically
+        if (line.includes('Scheme Name') || line.includes('Stock Name') || line.includes('Company')) {
+            isMF = line.includes('Scheme Name') || line.includes('NAV');
+            
+            const findCol = (keywords: string[]) => {
+                const idx = cols.findIndex(c => keywords.some(k => c.toUpperCase().includes(k.toUpperCase())));
+                return idx !== -1 ? idx : -1;
+            };
+
+            colMap = {
+                name: findCol(['Scheme Name', 'Stock Name', 'Company', 'Fund']),
+                type: findCol(['Type', 'Transaction Type']),
+                date: findCol(['Date', 'Transaction Date']),
+                qty: findCol(['Quantity', 'Units']),
+                price: findCol(['Price', 'NAV']),
+                symbol: findCol(['Symbol', 'ISIN', 'Folio'])
+            };
+            
+            // If symbol column is missing (like in the new Groww MF export), we'll fallback to using the name
+            if (colMap.symbol === -1) {
+                colMap.symbol = colMap.name; 
+            }
+            continue;
+        }
+
+        if (cols.length < 5) {
             results.skipped++;
             continue;
         }
 
-        const [name, symbolOrCode, dateStr, type, qtyStr, priceStr] = cols;
+        const name = cols[colMap.name];
+        let symbolOrCode = cols[colMap.symbol];
+        const dateStr = cols[colMap.date];
+        const type = cols[colMap.type];
+        const qtyStr = cols[colMap.qty]?.replace(/,/g, '');
+        const priceStr = cols[colMap.price]?.replace(/,/g, '');
+
+        if (!name || !dateStr || !qtyStr || !priceStr || !type) {
+             results.skipped++;
+             continue;
+        }
+
+        const qty = parseFloat(qtyStr);
+        const price = parseFloat(priceStr);
+
+        // Skip non-transaction rows (like metadata at the top of the CSV)
+        if (isNaN(qty) || isNaN(price)) {
+            results.skipped++;
+            continue;
+        }
 
         try {
-            const isMutualFund = /^\d+$/.test(symbolOrCode);
-            const assetType = isMutualFund ? 'MUTUAL_FUND' : 'STOCK';
-            const tickerSymbol = isMutualFund ? symbolOrCode : `${symbolOrCode}.NS`;
+            const assetType = isMF ? 'MUTUAL_FUND' : 'STOCK';
+            
+            // If the symbol column was missing, we use the name to generate a unique ticker
+            if (colMap.symbol === colMap.name && isMF) {
+                // Remove spaces and special chars for a clean ticker
+                symbolOrCode = name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15).toUpperCase();
+            }
+            
+            const tickerSymbol = isMF ? `MF-${symbolOrCode}` : `${symbolOrCode}.NS`;
 
             let instrument = await Instrument.findOne({ tickerSymbol });
 
@@ -143,22 +206,37 @@ async function parseGroww(lines: string[], userId: string, profile: string) {
                     name: name,
                     tickerSymbol,
                     assetType,
-                    exchange: isMutualFund ? 'AMFI' : 'NSE',
-                    currentPrice: parseFloat(priceStr),
-                    previousClose: parseFloat(priceStr),
+                    exchange: isMF ? 'AMFI' : 'NSE',
+                    currentPrice: price,
+                    previousClose: price,
                     isActive: true,
                 });
             }
 
-            let tradeDate: Date;
-            if (dateStr.includes('/')) {
-                const [d, m, y] = dateStr.split('/');
-                tradeDate = new Date(`${y}-${m}-${d}`);
-            } else {
-                tradeDate = new Date(dateStr);
+            let tradeDate = new Date(dateStr);
+            if (isNaN(tradeDate.getTime())) {
+                let parts: string[] = [];
+                if (dateStr.includes('/')) parts = dateStr.split('/');
+                else if (dateStr.includes('-')) parts = dateStr.split('-');
+                else if (dateStr.includes(' ')) parts = dateStr.split(' '); // e.g. "07 Aug 2026"
+                
+                if (parts.length >= 3) {
+                    // Try parsing "07 Aug 2026"
+                    tradeDate = new Date(`${parts[0]} ${parts[1]} ${parts[2]}`);
+                    if (isNaN(tradeDate.getTime())) {
+                         // Try dd-mm-yyyy
+                         tradeDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                    }
+                }
             }
 
-            const txType = type.toUpperCase().includes('BUY') ? 'BUY' : 'SELL';
+            if (isNaN(tradeDate.getTime())) {
+                throw new Error(`Invalid Date format: ${dateStr}`);
+            }
+
+            const typeUpper = type.toUpperCase();
+            const isBuy = typeUpper.includes('BUY') || typeUpper.includes('SIP') || typeUpper.includes('LUMP') || typeUpper.includes('PURCHASE');
+            const txType = isBuy ? 'BUY' : 'SELL';
 
             await Transaction.create({
                 userId,
@@ -166,8 +244,8 @@ async function parseGroww(lines: string[], userId: string, profile: string) {
                 instrumentId: instrument._id,
                 type: txType,
                 date: tradeDate,
-                quantity: parseFloat(qtyStr),
-                price: parseFloat(priceStr),
+                quantity: qty,
+                price: price,
                 fees: 0,
                 notes: `Imported from Groww`,
             });

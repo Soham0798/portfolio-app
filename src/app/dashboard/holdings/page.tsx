@@ -67,7 +67,7 @@ export default function HoldingsPage() {
     }, [profile]);
 
     const formatCurrency = (n: number) =>
-        new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+        new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n);
 
     const formatPercent = (n: number) =>
         `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
@@ -116,26 +116,75 @@ export default function HoldingsPage() {
             </div>
 
             {summary && (
-                <div className={`glass-card ${styles.summaryBar}`}>
-                    <div className={styles.summaryItem}>
-                        <span className={styles.summaryLabel}>Total Value</span>
-                        <span className={styles.summaryValue}>{formatCurrency(summary.totalValue)}</span>
+                <div className={styles.summaryBar}>
+                    {/* Total Value */}
+                    <div className={styles.card}>
+                        <div className={styles.cardTitle}>
+                            <span className={`${styles.cardIcon} ${styles.blue}`}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            </span>
+                            <p className={styles.cardTitleText}>Total Value</p>
+                        </div>
+                        <div className={styles.cardData}>
+                            <p className={styles.cardDataValue}>{formatCurrency(summary.totalValue)}</p>
+                            <div className={styles.cardRange}>
+                                <div className={`${styles.cardRangeFill} ${styles.blue}`} style={{ width: '100%' }}></div>
+                            </div>
+                        </div>
                     </div>
-                    <div className={styles.summaryItem}>
-                        <span className={styles.summaryLabel}>Invested</span>
-                        <span className={styles.summaryValue}>{formatCurrency(summary.totalInvested)}</span>
+
+                    {/* Total Invested */}
+                    <div className={styles.card}>
+                        <div className={styles.cardTitle}>
+                            <span className={`${styles.cardIcon} ${styles.purple}`}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h0M2 9.5h20"/></svg>
+                            </span>
+                            <p className={styles.cardTitleText}>Invested</p>
+                        </div>
+                        <div className={styles.cardData}>
+                            <p className={styles.cardDataValue}>{formatCurrency(summary.totalInvested)}</p>
+                            <div className={styles.cardRange}>
+                                <div className={`${styles.cardRangeFill} ${styles.purple}`} style={{ width: `${summary.totalValue > 0 ? (summary.totalInvested / summary.totalValue) * 100 : 0}%` }}></div>
+                            </div>
+                        </div>
                     </div>
-                    <div className={styles.summaryItem}>
-                        <span className={styles.summaryLabel}>Total P&L</span>
-                        <span className={`${styles.summaryValue} ${summary.totalGain >= 0 ? 'gain' : 'loss'}`}>
-                            {formatCurrency(summary.totalGain)} ({formatPercent(summary.totalGainPercent)})
-                        </span>
+
+                    {/* Total P&L */}
+                    <div className={styles.card}>
+                        <div className={styles.cardTitle}>
+                            <span className={styles.cardIcon}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                            </span>
+                            <p className={styles.cardTitleText}>Total P&L</p>
+                            <p className={`${styles.cardPercent} ${summary.totalGain < 0 ? styles.loss : ''}`}>
+                                {summary.totalGain >= 0 ? '▲' : '▼'} {Math.abs(summary.totalGainPercent).toFixed(2)}%
+                            </p>
+                        </div>
+                        <div className={styles.cardData}>
+                            <p className={styles.cardDataValue}>{formatCurrency(Math.abs(summary.totalGain))}</p>
+                            <div className={styles.cardRange}>
+                                <div className={`${styles.cardRangeFill} ${summary.totalGain < 0 ? styles.red : ''}`} style={{ width: `${Math.min(Math.abs(summary.totalGainPercent), 100)}%` }}></div>
+                            </div>
+                        </div>
                     </div>
-                    <div className={styles.summaryItem}>
-                        <span className={styles.summaryLabel}>Day Change</span>
-                        <span className={`${styles.summaryValue} ${summary.totalDayGain >= 0 ? 'gain' : 'loss'}`}>
-                            {formatCurrency(summary.totalDayGain)} ({formatPercent(summary.totalDayGainPercent)})
-                        </span>
+
+                    {/* Day Change */}
+                    <div className={styles.card}>
+                        <div className={styles.cardTitle}>
+                            <span className={`${styles.cardIcon} ${styles.orange}`}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            </span>
+                            <p className={styles.cardTitleText}>Day Change</p>
+                            <p className={`${styles.cardPercent} ${summary.totalDayGain < 0 ? styles.loss : ''}`}>
+                                {summary.totalDayGain >= 0 ? '▲' : '▼'} {Math.abs(summary.totalDayGainPercent).toFixed(2)}%
+                            </p>
+                        </div>
+                        <div className={styles.cardData}>
+                            <p className={styles.cardDataValue}>{formatCurrency(Math.abs(summary.totalDayGain))}</p>
+                            <div className={styles.cardRange}>
+                                <div className={`${styles.cardRangeFill} ${summary.totalDayGain < 0 ? styles.red : styles.orange}`} style={{ width: `${Math.min(Math.abs(summary.totalDayGainPercent) * 10, 100)}%` }}></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
