@@ -9,10 +9,12 @@ import { refreshAllPrices } from '@/lib/prices';
 function verifyCronSecret(req: NextRequest): boolean {
     const authHeader = req.headers.get('authorization');
     const secret = process.env.CRON_SECRET;
-    return authHeader === `Bearer ${secret}`;
+    const url = new URL(req.url);
+    const urlSecret = url.searchParams.get('secret');
+    return authHeader === `Bearer ${secret}` || urlSecret === secret;
 }
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
     if (!verifyCronSecret(req)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -123,6 +125,7 @@ async function generateSnapshot() {
 
     const sameerSnapshot = await buildProfileSnapshot('sameer');
     const snehalSnapshot = await buildProfileSnapshot('snehal');
+    const sohamSnapshot = await buildProfileSnapshot('soham');
 
     const assetClassMap: Record<string, number> = {};
     holdings.forEach(h => {
@@ -148,7 +151,7 @@ async function generateSnapshot() {
                 totalInvested,
                 dayGain: totalDayGain,
                 dayGainPercent: totalValue > 0 ? (totalDayGain / (totalValue - totalDayGain)) * 100 : 0,
-                byProfile: { sameer: sameerSnapshot, snehal: snehalSnapshot },
+                byProfile: { sameer: sameerSnapshot, snehal: snehalSnapshot, soham: sohamSnapshot },
                 byAssetClass,
             }
         },

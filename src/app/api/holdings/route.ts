@@ -5,6 +5,8 @@ import Transaction from '@/models/Transaction';
 import Instrument from '@/models/Instrument';
 import ManualAsset from '@/models/ManualAssets';
 
+import mongoose from 'mongoose';
+
 export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -14,8 +16,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const profile = searchParams.get('profile');
 
-    const matchStage: any = { userId: user.userId };
-    if (profile) matchStage.profile = profile;
+    const matchStage: any = { userId: new mongoose.Types.ObjectId(user.userId) };
+    if (profile && profile !== 'combined') matchStage.profile = profile;
 
     const holdings = await Transaction.aggregate([
         { $match: matchStage },
@@ -109,7 +111,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     const manualQuery: any = { userId: user.userId, status: 'ACTIVE' };
-    if (profile) manualQuery.profile = profile;
+    if (profile && profile !== 'combined') manualQuery.profile = profile;
     const manualAssets = await ManualAsset.find(manualQuery);
 
     const marketValue = holdings.reduce((sum, h) => sum + h.currentValue, 0);

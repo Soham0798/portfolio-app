@@ -24,6 +24,7 @@ export interface IDailySnapshot extends Document {
     byProfile: {
         sameer: IProfileSnapshot;
         snehal: IProfileSnapshot;
+        soham: IProfileSnapshot;
     };
     byAssetClass: IAssetClassBreakdown[];
 }
@@ -81,6 +82,7 @@ const DailySnapshotSchema = new Schema<IDailySnapshot>(
         byProfile: {
             sameer: { type: ProfileSnapshotSchema, default: () => ({}) },
             snehal: { type: ProfileSnapshotSchema, default: () => ({}) },
+            soham: { type: ProfileSnapshotSchema, default: () => ({}) },
         },
         byAssetClass: {
             type: [AssetClassBreakdownSchema],

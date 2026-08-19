@@ -6,7 +6,7 @@ export const TRANSACTION_TYPES = [
 
 export type TransactionType = typeof TRANSACTION_TYPES[number];
 
-export const PROFILES = ['sameer', 'snehal'] as const;
+export const PROFILES = ['sameer', 'snehal', 'soham'] as const;
 export type Profile = typeof PROFILES[number];
 
 export interface ITransaction extends Document {

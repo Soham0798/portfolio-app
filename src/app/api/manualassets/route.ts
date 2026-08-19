@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const assetType = searchParams.get('type');
 
     const query: any = { userId: user.userId };
-    if (profile) query.profile = profile;
+    if (profile && profile !== 'combined') query.profile = profile;
     if (assetType) query.assetType = assetType;
 
     const assets = await ManualAsset.find(query).sort({ name: 1 });

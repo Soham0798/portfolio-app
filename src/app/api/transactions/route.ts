@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
 
     const query: any = { userId: user.userId };
-    if (profile) query.profile = profile;
+    if (profile && profile !== 'combined') query.profile = profile;
     if (instrumentId) query.instrumentId = instrumentId;
 
     const total = await Transaction.countDocuments(query);

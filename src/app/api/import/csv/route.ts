@@ -116,10 +116,19 @@ async function parseZerodha(lines: string[], userId: string, profile: string) {
     return results;
 }
 
+import { fetchAllMutualFunds, searchMutualFund } from '@/lib/prices/amfi';
+
 // ===== Groww CSV Parser =====
 // Format: Company/Fund, Symbol/Code, Date, Type, Quantity/Units, Price/NAV, Amount
 async function parseGroww(lines: string[], userId: string, profile: string) {
     const results = { imported: 0, skipped: 0, errors: [] as string[] };
+    
+    let amfiSchemes: any[] = [];
+    try {
+        amfiSchemes = await fetchAllMutualFunds();
+    } catch (e) {
+        console.error('Failed to load AMFI list for matching', e);
+    }
 
     let isMF = false;
     let colMap: Record<string, number> = {
@@ -191,13 +200,18 @@ async function parseGroww(lines: string[], userId: string, profile: string) {
         try {
             const assetType = isMF ? 'MUTUAL_FUND' : 'STOCK';
             
-            // If the symbol column was missing, we use the name to generate a unique ticker
-            if (colMap.symbol === colMap.name && isMF) {
-                // Remove spaces and special chars for a clean ticker
-                symbolOrCode = name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15).toUpperCase();
+            let tickerSymbol = '';
+            if (isMF) {
+                const matchedCode = searchMutualFund(name, amfiSchemes);
+                if (matchedCode) {
+                    tickerSymbol = matchedCode;
+                } else {
+                    const fallbackCode = (symbolOrCode || name).replace(/[^a-zA-Z0-9]/g, '').substring(0, 15).toUpperCase();
+                    tickerSymbol = `MF-${fallbackCode}`;
+                }
+            } else {
+                tickerSymbol = `${symbolOrCode}.NS`;
             }
-            
-            const tickerSymbol = isMF ? `MF-${symbolOrCode}` : `${symbolOrCode}.NS`;
 
             let instrument = await Instrument.findOne({ tickerSymbol });
 

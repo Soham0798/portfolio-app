@@ -1,4 +1,5 @@
-import yahooFinance from 'yahoo-finance2';
+import yahooFinanceDefault from 'yahoo-finance2';
+const yahooFinance = new (yahooFinanceDefault as any)();
 
 export interface PriceResult {
     currentPrice: number;

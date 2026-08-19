@@ -15,6 +15,7 @@ interface Snapshot {
     byProfile: {
         sameer: { totalValue: number; dayGain: number };
         snehal: { totalValue: number; dayGain: number };
+        soham: { totalValue: number; dayGain: number };
     };
 }
 
@@ -58,6 +59,9 @@ export default function HistoryPage() {
         }
         if (profile === 'snehal') {
             return { date: s.dateString, value: s.byProfile?.snehal?.totalValue || 0 };
+        }
+        if (profile === 'soham') {
+            return { date: s.dateString, value: s.byProfile?.soham?.totalValue || 0 };
         }
         return { date: s.dateString, value: s.totalValue };
     });
@@ -163,6 +167,7 @@ export default function HistoryPage() {
                                 <th>Day Change</th>
                                 <th>Sameer</th>
                                 <th>Snehal</th>
+                                <th>Soham</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -175,6 +180,7 @@ export default function HistoryPage() {
                                     </td>
                                     <td>{formatCurrency(s.byProfile?.sameer?.totalValue || 0)}</td>
                                     <td>{formatCurrency(s.byProfile?.snehal?.totalValue || 0)}</td>
+                                    <td>{formatCurrency(s.byProfile?.soham?.totalValue || 0)}</td>
                                 </tr>
                             ))}
                         </tbody>

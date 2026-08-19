@@ -204,6 +204,7 @@ export default function ManualAssetsPage() {
                                     <select className="input" value={form.profile} onChange={(e) => setForm({ ...form, profile: e.target.value })}>
                                         <option value="sameer">Sameer</option>
                                         <option value="snehal">Snehal</option>
+                                        <option value="soham">Soham</option>
                                     </select>
                                 </div>
                                 <div className={styles.field}>

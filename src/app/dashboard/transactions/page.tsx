@@ -224,6 +224,7 @@ export default function TransactionsPage() {
                                     >
                                         <option value="sameer">Sameer</option>
                                         <option value="snehal">Snehal</option>
+                                        <option value="soham">Soham</option>
                                     </select>
                                 </div>
                                 <div className={styles.field}>

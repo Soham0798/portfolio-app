@@ -66,6 +66,7 @@ export default function ImportPage() {
                             <select className="input" value={profile} onChange={(e) => setProfile(e.target.value)}>
                                 <option value="sameer">Sameer</option>
                                 <option value="snehal">Snehal</option>
+                                <option value="soham">Soham</option>
                             </select>
                         </div>
                     </div>

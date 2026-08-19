@@ -92,6 +92,16 @@ const NAV_GROUPS = [
                         <path d="M2.5 12.5V13C2.5 13.55 2.95 14 3.5 14H12.5C13.05 14 13.5 13.55 13.5 13V12.5" strokeLinecap="round" />
                     </svg>
                 )
+            },
+            {
+                label: 'Transfer Data',
+                path: '/dashboard/transfer',
+                icon: (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
+                        <path d="M4 6H12M12 6L9.5 3.5M12 6L9.5 8.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M12 10H4M4 10L6.5 7.5M4 10L6.5 12.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                )
             }
         ]
     }
@@ -189,11 +199,12 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             <main className={styles.main}>
                 <header className={styles.topBar}>
                     <div className="tab-group" style={{ marginBottom: '16px' }}>
-                        {(['sameer', 'snehal', 'combined'] as const).map((p) => {
+                        {(['sameer', 'snehal', 'soham', 'combined'] as const).map((p) => {
                             let dotStyle = {};
                             if (p === 'sameer') dotStyle = { background: '#5b8fe0' };
                             else if (p === 'snehal') dotStyle = { background: '#9b82e3' };
-                            else dotStyle = { background: 'linear-gradient(90deg, #5b8fe0, #9b82e3)' };
+                            else if (p === 'soham') dotStyle = { background: '#4fb797' };
+                            else dotStyle = { background: 'linear-gradient(90deg, #5b8fe0, #9b82e3, #4fb797)' };
 
                             return (
                                 <button
