@@ -32,6 +32,23 @@ export async function GET(req: NextRequest) {
         return await generateSnapshot();
     }
 
+    if (action === 'daily-run') {
+        // Combined action: refresh prices first, then generate snapshot
+        const priceResults = await refreshAllPrices();
+        const snapshotRes = await generateSnapshotInternal();
+        if (!snapshotRes) {
+            return NextResponse.json({ message: 'Prices refreshed but no transactions found for snapshot', prices: priceResults });
+        }
+        return NextResponse.json({
+            message: `Daily run complete for ${snapshotRes.dateString}`,
+            prices: priceResults,
+            snapshot: {
+                totalValue: snapshotRes.totalValue,
+                totalDayGain: snapshotRes.totalDayGain,
+            },
+        });
+    }
+
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }
 
@@ -41,6 +58,18 @@ async function refreshPrices() {
 }
 
 async function generateSnapshot() {
+    const result = await generateSnapshotInternal();
+    if (!result) {
+        return NextResponse.json({ message: 'No transactions found, skipping snapshot' });
+    }
+    return NextResponse.json({
+        message: `Snapshot generated for ${result.dateString}`,
+        totalValue: result.totalValue,
+        totalDayGain: result.totalDayGain,
+    });
+}
+
+async function generateSnapshotInternal() {
     const now = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
     const istDate = new Date(now.getTime() + istOffset);
@@ -48,7 +77,7 @@ async function generateSnapshot() {
 
     const Transaction_ = await Transaction.findOne();
     if (!Transaction_) {
-        return NextResponse.json({ message: 'No transactions found, skipping snapshot' });
+        return null;
     }
     const userId = Transaction_.userId;
 
@@ -91,10 +120,10 @@ async function generateSnapshot() {
 
     const manualAssets = await ManualAsset.find({ userId, status: 'ACTIVE' });
 
-    const marketValue = holdings.reduce((s, h) => s + h.currentValue, 0);
-    const marketInvested = holdings.reduce((s, h) => s + h.totalInvested, 0);
-    const manualValue = manualAssets.reduce((s, a) => s + a.currentValue, 0);
-    const manualInvested = manualAssets.reduce((s, a) => s + a.totalInvested, 0);
+    const marketValue = holdings.reduce((s: number, h: any) => s + h.currentValue, 0);
+    const marketInvested = holdings.reduce((s: number, h: any) => s + h.totalInvested, 0);
+    const manualValue = manualAssets.reduce((s: number, a: any) => s + a.currentValue, 0);
+    const manualInvested = manualAssets.reduce((s: number, a: any) => s + a.totalInvested, 0);
 
     const totalValue = marketValue + manualValue;
     const totalInvested = marketInvested + manualInvested;
@@ -111,9 +140,9 @@ async function generateSnapshot() {
         ]);
 
         const profileManual = await ManualAsset.find({ userId, profile, status: 'ACTIVE' });
-        const pValue = profileHoldings.reduce((s, h) => s + h.currentValue, 0) + profileManual.reduce((s, a) => s + a.currentValue, 0);
-        const pInvested = profileHoldings.reduce((s, h) => s + h.totalInvested, 0) + profileManual.reduce((s, a) => s + a.totalInvested, 0);
-        const pDayGain = profileHoldings.reduce((s, h) => s + h.dayGain, 0);
+        const pValue = profileHoldings.reduce((s: number, h: any) => s + h.currentValue, 0) + profileManual.reduce((s: number, a: any) => s + a.currentValue, 0);
+        const pInvested = profileHoldings.reduce((s: number, h: any) => s + h.totalInvested, 0) + profileManual.reduce((s: number, a: any) => s + a.totalInvested, 0);
+        const pDayGain = profileHoldings.reduce((s: number, h: any) => s + h.dayGain, 0);
 
         return {
             totalValue: pValue,
@@ -128,10 +157,10 @@ async function generateSnapshot() {
     const sohamSnapshot = await buildProfileSnapshot('soham');
 
     const assetClassMap: Record<string, number> = {};
-    holdings.forEach(h => {
+    holdings.forEach((h: any) => {
         assetClassMap[h.assetType] = (assetClassMap[h.assetType] || 0) + h.currentValue;
     });
-    manualAssets.forEach(a => {
+    manualAssets.forEach((a: any) => {
         assetClassMap[a.assetType] = (assetClassMap[a.assetType] || 0) + a.currentValue;
     });
     const byAssetClass = Object.entries(assetClassMap).map(([assetType, value]) => ({
@@ -140,7 +169,7 @@ async function generateSnapshot() {
         percentage: totalValue > 0 ? (value / totalValue) * 100 : 0,
     }));
 
-    const totalDayGain = holdings.reduce((s, h) => s + h.dayGain, 0);
+    const totalDayGain = holdings.reduce((s: number, h: any) => s + h.dayGain, 0);
 
     await DailySnapshot.findOneAndUpdate(
         { userId, dateString },
@@ -158,9 +187,7 @@ async function generateSnapshot() {
         { upsert: true, new: true }
     );
 
-    return NextResponse.json({
-        message: `Snapshot generated for ${dateString}`,
-        totalValue,
-        totalDayGain,
-    });
+    return { dateString, totalValue, totalDayGain };
 }
+
+
