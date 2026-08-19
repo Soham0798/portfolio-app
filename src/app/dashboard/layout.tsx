@@ -157,7 +157,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                                 >
                                     {item.icon}
                                     {item.label}
-                                    {item.kbd && <span className={styles.kbd}>{item.kbd}</span>}
+                                    {'kbd' in item && (item as any).kbd && <span className={styles.kbd}>{(item as any).kbd}</span>}
                                 </button>
                             ))}
                         </div>
