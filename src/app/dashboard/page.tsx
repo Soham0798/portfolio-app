@@ -18,6 +18,15 @@ interface Holding {
     totalInvested: number;
 }
 
+interface ManualAsset {
+    _id: string;
+    name: string;
+    assetType: string;
+    currentValue: number;
+    totalInvested: number;
+    profile: string;
+}
+
 interface Summary {
     totalValue: number;
     totalInvested: number;
@@ -32,6 +41,7 @@ interface Summary {
 export default function DashboardPage() {
     const { profile } = useProfile();
     const [holdings, setHoldings] = useState<Holding[]>([]);
+    const [manualAssets, setManualAssets] = useState<ManualAsset[]>([]);
     const [summary, setSummary] = useState<Summary | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -43,6 +53,7 @@ export default function DashboardPage() {
                 const res = await fetch(`/api/holdings${profileParam}`);
                 const data = await res.json();
                 setHoldings(data.holdings || []);
+                setManualAssets(data.manualAssets || []);
                 setSummary(data.summary || null);
             } catch (error) {
                 console.error('Failed to fetch holdings:', error);
@@ -62,6 +73,35 @@ export default function DashboardPage() {
     const formatPercent = (n: number) => {
         return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
     };
+
+    const assetBuckets = { Equity: 0, Commodities: 0, Debt: 0, Other: 0 };
+    holdings.forEach(h => {
+        const name = h.name.toLowerCase();
+        const type = h.assetType.toUpperCase();
+        if (type === 'SGB' || type === 'GOLD' || name.includes('gold') || name.includes('silver')) {
+            assetBuckets.Commodities += h.currentValue;
+        } else if (type === 'BOND' || type === 'NPS' || name.includes('liquid') || name.includes('debt')) {
+            assetBuckets.Debt += h.currentValue;
+        } else if (type === 'STOCK' || type === 'MUTUAL_FUND' || type === 'ETF') {
+            assetBuckets.Equity += h.currentValue;
+        } else {
+            assetBuckets.Other += h.currentValue;
+        }
+    });
+    manualAssets.forEach(a => {
+        const type = a.assetType.toUpperCase();
+        if (type === 'FD' || type === 'RD' || type === 'EPF' || type === 'PPF' || type === 'CASH') {
+            assetBuckets.Debt += a.currentValue;
+        } else if (type === 'GOLD' || type === 'SGB') {
+            assetBuckets.Commodities += a.currentValue;
+        } else {
+            assetBuckets.Other += a.currentValue;
+        }
+    });
+
+    const bucketArray = Object.entries(assetBuckets)
+        .filter(([_, val]) => val > 0)
+        .sort((a, b) => b[1] - a[1]);
 
     if (loading) {
         return <div className={styles.loading}>Loading portfolio...</div>;
@@ -85,12 +125,7 @@ export default function DashboardPage() {
                                 {formatCurrency(Math.abs(summary.totalDayGain))}
                                 <span className={styles.label}>today</span>
                             </div>
-                            <div className={styles.movementDivider}></div>
-                            <div className={`${styles.movement} ${summary.totalGain >= 0 ? styles.up : styles.down}`}>
-                                <span className={styles.tri}>{summary.totalGain >= 0 ? '▲' : '▼'}</span>
-                                {formatCurrency(Math.abs(summary.totalGain))} · {formatPercent(Math.abs(summary.totalGainPercent))}
-                                <span className={styles.label}>overall</span>
-                            </div>
+
                             <div className={styles.seal}>
                                 <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="#C9A24A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                             </div>
@@ -116,59 +151,107 @@ export default function DashboardPage() {
                     </div>
 
                     {holdings.length > 0 && (
-                        <div className={styles.allocation}>
-                            <div className={styles.ringWrap}>
-                                <svg width="64" height="64" viewBox="0 0 64 64">
-                                    <circle cx="32" cy="32" r="26" fill="none" stroke="#20261F" strokeWidth="8"/>
-                                    
+                        <>
+                            <div className={styles.allocation}>
+                                <div className={styles.ringWrap}>
+                                    <svg width="64" height="64" viewBox="0 0 64 64">
+                                        <circle cx="32" cy="32" r="26" fill="none" stroke="#1B2740" strokeWidth="8"/>
+                                        
+                                        {(() => {
+                                            const sorted = [...holdings].sort((a,b) => b.currentValue - a.currentValue);
+                                            const top3 = sorted.slice(0, 3);
+                                            const ringColors = ['#60A5FA', '#A78BFA', '#34D399'];
+                                            const totalLen = 163.36;
+                                            let offset = totalLen;
+                                            
+                                            return top3.map((h, i) => {
+                                                const pct = h.currentValue / summary.totalValue;
+                                                const dash = pct * totalLen;
+                                                const thisOffset = offset;
+                                                offset -= dash;
+                                                return (
+                                                    <circle 
+                                                        key={h.instrumentId}
+                                                        cx="32" cy="32" r="26" fill="none" 
+                                                        stroke={ringColors[i]} strokeWidth="8"
+                                                        strokeDasharray={`${dash} ${totalLen - dash}`} 
+                                                        strokeDashoffset={thisOffset - totalLen} 
+                                                        strokeLinecap="round"
+                                                    />
+                                                );
+                                            });
+                                        })()}
+                                    </svg>
+                                    <div className={styles.ringCenter}>{holdings.length} funds</div>
+                                </div>
+                                <div className={styles.allocLegend}>
                                     {(() => {
                                         const sorted = [...holdings].sort((a,b) => b.currentValue - a.currentValue);
                                         const top3 = sorted.slice(0, 3);
-                                        const ringColors = ['#C9A24A', '#6FA97F', '#C1663F'];
-                                        const totalLen = 163.36;
-                                        let offset = totalLen;
+                                        const ringColors = ['#60A5FA', '#A78BFA', '#34D399'];
                                         
-                                        return top3.map((h, i) => {
-                                            const pct = h.currentValue / summary.totalValue;
-                                            const dash = pct * totalLen;
-                                            const thisOffset = offset;
-                                            offset -= dash;
-                                            return (
-                                                <circle 
-                                                    key={h.instrumentId}
-                                                    cx="32" cy="32" r="26" fill="none" 
-                                                    stroke={ringColors[i]} strokeWidth="8"
-                                                    strokeDasharray={`${dash} ${totalLen - dash}`} 
-                                                    strokeDashoffset={thisOffset - totalLen} 
-                                                    strokeLinecap="round"
-                                                />
-                                            );
-                                        });
+                                        return top3.map((h, i) => (
+                                            <div className={styles.allocItem} key={h.instrumentId}>
+                                                <span className={styles.allocDot} style={{background: ringColors[i]}}></span>
+                                                <span className={styles.allocName}>{h.name}</span>
+                                                <span className={styles.allocPct}>{((h.currentValue / summary.totalValue) * 100).toFixed(0)}%</span>
+                                            </div>
+                                        ));
                                     })()}
-                                </svg>
-                                <div className={styles.ringCenter}>{holdings.length} funds</div>
+                                </div>
                             </div>
-                            <div className={styles.allocLegend}>
-                                {(() => {
-                                    const sorted = [...holdings].sort((a,b) => b.currentValue - a.currentValue);
-                                    const top3 = sorted.slice(0, 3);
-                                    const ringColors = ['#C9A24A', '#6FA97F', '#C1663F'];
-                                    
-                                    return top3.map((h, i) => (
-                                        <div className={styles.allocItem} key={h.instrumentId}>
-                                            <span className={styles.allocDot} style={{background: ringColors[i]}}></span>
-                                            <span className={styles.allocName}>{h.name}</span>
-                                            <span className={styles.allocPct}>{((h.currentValue / summary.totalValue) * 100).toFixed(0)}%</span>
-                                        </div>
-                                    ));
-                                })()}
-                            </div>
-                        </div>
+                            
+                            {bucketArray.length > 0 && (
+                                <div className={styles.allocation}>
+                                    <div className={styles.ringWrap}>
+                                        <svg width="64" height="64" viewBox="0 0 64 64">
+                                            <circle cx="32" cy="32" r="26" fill="none" stroke="#1B2740" strokeWidth="8"/>
+                                            
+                                            {(() => {
+                                                const ringColors = ['#60A5FA', '#A78BFA', '#34D399', '#FBBF24'];
+                                                const totalLen = 163.36;
+                                                let offset = totalLen;
+                                                
+                                                return bucketArray.map(([name, val], i) => {
+                                                    const pct = val / summary.totalValue;
+                                                    const dash = pct * totalLen;
+                                                    const thisOffset = offset;
+                                                    offset -= dash;
+                                                    return (
+                                                        <circle 
+                                                            key={name}
+                                                            cx="32" cy="32" r="26" fill="none" 
+                                                            stroke={ringColors[i % ringColors.length]} strokeWidth="8"
+                                                            strokeDasharray={`${dash} ${totalLen - dash}`} 
+                                                            strokeDashoffset={thisOffset - totalLen} 
+                                                            strokeLinecap="round"
+                                                        />
+                                                    );
+                                                });
+                                            })()}
+                                        </svg>
+                                        <div className={styles.ringCenter}>Assets</div>
+                                    </div>
+                                    <div className={styles.allocLegend}>
+                                        {(() => {
+                                            const ringColors = ['#60A5FA', '#A78BFA', '#34D399', '#FBBF24'];
+                                            
+                                            return bucketArray.map(([name, val], i) => (
+                                                <div className={styles.allocItem} key={name}>
+                                                    <span className={styles.allocDot} style={{background: ringColors[i % ringColors.length]}}></span>
+                                                    <span className={styles.allocName}>{name}</span>
+                                                    <span className={styles.allocPct}>{((val / summary.totalValue) * 100).toFixed(0)}%</span>
+                                                </div>
+                                            ));
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     <div className={styles.holdingsHead}>
                         <div className={styles.holdingsTitle}>Holdings</div>
-                        <div className={styles.holdingsCount}>{String(holdings.length).padStart(3, '0')} / assets</div>
                     </div>
 
                     {[...holdings].sort((a,b) => b.currentValue - a.currentValue).map((h, i) => {
