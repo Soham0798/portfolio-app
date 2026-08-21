@@ -62,7 +62,7 @@ export default function AssetsPage() {
     const [showDropdown, setShowDropdown] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const isMarketType = MARKET_TYPES.includes(form.assetType);
 
