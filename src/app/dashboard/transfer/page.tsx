@@ -103,7 +103,7 @@ export default function TransferPage() {
                             <span className={styles.statLabel}>Assets Moved</span>
                         </div>
                     </div>
-                    <p style={{ marginTop: '16px', color: '#4fb797', textAlign: 'center' }}>
+                    <p style={{ marginTop: '16px', color: '#60a5fa', textAlign: 'center' }}>
                         Your portfolio dashboard has been updated.
                     </p>
                 </div>

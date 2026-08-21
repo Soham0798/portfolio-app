@@ -46,6 +46,20 @@
     transform: translateY(-1px);
 }
 
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+    .statsGrid {
+        grid-template-columns: 1fr;
+    }
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+}
+
 .importBtn:disabled {
     opacity: 0.5;
     cursor: not-allowed;

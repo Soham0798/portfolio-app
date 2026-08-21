@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { ProfileProvider, useProfile } from '@/components/ProfileContext';
+import { useState } from 'react';
 import styles from './layout.module.css';
 
 const NAV_GROUPS = [
@@ -64,7 +65,7 @@ const NAV_GROUPS = [
         label: 'Data',
         items: [
             {
-                label: 'Manual Assets',
+                label: 'Assets',
                 path: '/dashboard/manualassets',
                 icon: (
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
@@ -111,6 +112,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const { profile, setProfile } = useProfile();
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
     const handleLogout = async () => {
         await fetch('/api/auth/logout', { method: 'POST' });
@@ -136,7 +139,10 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
     return (
         <div className={styles.container}>
-            <aside className={styles.sidebar}>
+            {/* Mobile overlay */}
+            {mobileOpen && <div className={styles.mobileOverlay} onClick={() => setMobileOpen(false)} />}
+
+            <aside className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ''}`}>
                 <div className={styles.brand}>
                     <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                         <rect x="1" y="1" width="20" height="20" rx="5" stroke="#60a5fa" strokeWidth="1.4" />
@@ -153,7 +159,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                                 <button
                                     key={item.path}
                                     className={`${styles.item} ${pathname === item.path ? styles.active : ''}`}
-                                    onClick={() => router.push(item.path)}
+                                    onClick={() => { router.push(item.path); setMobileOpen(false); }}
                                 >
                                     {item.icon}
                                     {item.label}
@@ -198,25 +204,78 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
             <main className={styles.main}>
                 <header className={styles.topBar}>
-                    <div className="tab-group" style={{ marginBottom: '16px' }}>
-                        {(['sameer', 'snehal', 'soham', 'combined'] as const).map((p) => {
-                            let dotStyle = {};
-                            if (p === 'sameer') dotStyle = { background: '#5b8fe0' };
-                            else if (p === 'snehal') dotStyle = { background: '#9b82e3' };
-                            else if (p === 'soham') dotStyle = { background: '#4fb797' };
-                            else dotStyle = { background: 'linear-gradient(90deg, #5b8fe0, #9b82e3, #4fb797)' };
+                    {/* Mobile hamburger */}
+                    <button className={styles.hamburger} onClick={() => setMobileOpen(true)} aria-label="Open menu">
+                        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6">
+                            <path d="M4 6h14M4 11h14M4 16h14" strokeLinecap="round" />
+                        </svg>
+                    </button>
+                    
+                    <div className={styles.profileSwitcher}>
+                        <div className={`tab-group hide-on-mobile`}>
+                            {(['sameer', 'snehal', 'soham', 'combined'] as const).map((p) => {
+                                let dotStyle = {};
+                                if (p === 'sameer') dotStyle = { background: '#5b8fe0' };
+                                else if (p === 'snehal') dotStyle = { background: '#9b82e3' };
+                                else if (p === 'soham') dotStyle = { background: '#4fb797' };
+                                else dotStyle = { background: 'linear-gradient(90deg, #5b8fe0, #9b82e3, #4fb797)' };
 
-                            return (
+                                return (
+                                    <button
+                                        key={p}
+                                        className={`tab ${profile === p ? 'active' : ''}`}
+                                        onClick={() => setProfile(p)}
+                                    >
+                                        <span className="pdot" style={dotStyle}></span>
+                                        {p.charAt(0).toUpperCase() + p.slice(1)}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        
+                        <div className="hide-on-desktop">
+                            <div className="tab-group" style={{ position: 'relative', display: 'flex' }}>
                                 <button
-                                    key={p}
-                                    className={`tab ${profile === p ? 'active' : ''}`}
-                                    onClick={() => setProfile(p)}
+                                    className="tab active"
+                                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                                 >
-                                    <span className="pdot" style={dotStyle}></span>
-                                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                                    <span className="pdot" style={
+                                        profile === 'sameer' ? { background: '#5b8fe0' } :
+                                        profile === 'snehal' ? { background: '#9b82e3' } :
+                                        profile === 'soham' ? { background: '#4fb797' } :
+                                        { background: 'linear-gradient(90deg, #5b8fe0, #9b82e3, #4fb797)' }
+                                    }></span>
+                                    {profile.charAt(0).toUpperCase() + profile.slice(1)}
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '4px' }}>
+                                        <path d="m6 9 6 6 6-6"/>
+                                    </svg>
                                 </button>
-                            );
-                        })}
+                                
+                                {profileDropdownOpen && (
+                                    <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '2px', background: '#0d1926', padding: '4px', borderRadius: '10px', border: '1px solid rgba(233,231,224,0.12)', zIndex: 100, minWidth: '130px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+                                        {(['sameer', 'snehal', 'soham', 'combined'] as const).filter(p => p !== profile).map((p) => {
+                                            let dotStyle = {};
+                                            if (p === 'sameer') dotStyle = { background: '#5b8fe0' };
+                                            else if (p === 'snehal') dotStyle = { background: '#9b82e3' };
+                                            else if (p === 'soham') dotStyle = { background: '#4fb797' };
+                                            else dotStyle = { background: 'linear-gradient(90deg, #5b8fe0, #9b82e3, #4fb797)' };
+
+                                            return (
+                                                <button
+                                                    key={p}
+                                                    className="tab"
+                                                    style={{ width: '100%', justifyContent: 'flex-start' }}
+                                                    onClick={() => { setProfile(p); setProfileDropdownOpen(false); }}
+                                                >
+                                                    <span className="pdot" style={dotStyle}></span>
+                                                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </header>
 

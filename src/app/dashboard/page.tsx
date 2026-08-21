@@ -69,142 +69,158 @@ export default function DashboardPage() {
 
     return (
         <div className={styles.page}>
+            {/* --- UNIFIED STATEMENT VIEW --- */}
             {summary && (
-                <div className={styles.hero}>
-                    <div className={styles.heroLabel}>Total Portfolio Value</div>
-                    <div className={styles.heroValue}>{formatCurrency(summary.totalValue)}</div>
-                    <div className={styles.heroDeltas}>
-                        <div className={styles.delta}>
-                            <span className={`${styles.amt} ${summary.totalDayGain < 0 ? styles.loss : ''}`}>
-                                {summary.totalDayGain >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(summary.totalDayGain))} ({formatPercent(Math.abs(summary.totalDayGainPercent))})
-                            </span>
-                            <span className={styles.ctx}>Today</span>
+                <div className={styles.statementDevice}>
+                    <div className={styles.statement}>
+                        <div className={styles.eyebrow}>Portfolio Statement · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                        <div className={styles.valueRow}>
+                            <span className={styles.rupee}>₹</span>
+                            <span className={styles.totalValue}>{formatCurrency(summary.totalValue)}</span>
                         </div>
-                        <div className={styles.deltaSep}></div>
-                        <div className={styles.delta}>
-                            <span className={`${styles.amt} ${summary.totalGain < 0 ? styles.loss : ''}`}>
-                                {summary.totalGain >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(summary.totalGain))} ({formatPercent(Math.abs(summary.totalGainPercent))})
-                            </span>
-                            <span className={styles.ctx}>Overall</span>
+
+                        <div className={styles.movementRow}>
+                            <div className={`${styles.movement} ${summary.totalDayGain >= 0 ? styles.up : styles.down}`}>
+                                <span className={styles.tri}>{summary.totalDayGain >= 0 ? '▲' : '▼'}</span>
+                                {formatCurrency(Math.abs(summary.totalDayGain))}
+                                <span className={styles.label}>today</span>
+                            </div>
+                            <div className={styles.movementDivider}></div>
+                            <div className={`${styles.movement} ${summary.totalGain >= 0 ? styles.up : styles.down}`}>
+                                <span className={styles.tri}>{summary.totalGain >= 0 ? '▲' : '▼'}</span>
+                                {formatCurrency(Math.abs(summary.totalGain))} · {formatPercent(Math.abs(summary.totalGainPercent))}
+                                <span className={styles.label}>overall</span>
+                            </div>
+                            <div className={styles.seal}>
+                                <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="#C9A24A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </div>
                         </div>
                     </div>
 
-                    <div className={styles.ledgerStrip}>
-                        {/* Invested */}
-                        <div className={styles.lcol}>
-                            <div className={styles.lcolHead}>
-                                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3">
-                                    <rect x="1.5" y="3.5" width="12" height="8.5" rx="1.3" />
-                                    <path d="M1.5 6.2H13.5" strokeLinecap="round" />
-                                </svg>
-                                <span className={styles.lname}>Invested</span>
-                            </div>
-                            <div className={styles.lcolVal}>{formatCurrency(summary.totalInvested)}</div>
-                            <div className={summary.totalInvested === 0 ? `${styles.ltrack} ${styles.empty}` : styles.ltrack}>
-                                <div className={`${styles.lfill} ${styles.blue}`} style={{ width: '100%' }}></div>
-                            </div>
+                    <div className={styles.statLedger}>
+                        <div className={styles.stat}>
+                            <div className={styles.statLabel}>Invested</div>
+                            <div className={styles.statFigure}>{formatCurrency(summary.totalInvested)}</div>
                         </div>
-
-                        {/* Total Gain */}
-                        <div className={styles.lcol}>
-                            <div className={styles.lcolHead}>
-                                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3">
-                                    <path d="M1.5 11L5.5 6.5L8 9L13.5 3" strokeLinecap="round" strokeLinejoin="round" />
-                                    <path d="M9.8 3H13.5V6.7" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                <span className={styles.lname}>Total Gain</span>
-                                <span className={`${styles.lchip} ${summary.totalGain >= 0 ? styles.pos : styles.neg}`}>
-                                    {summary.totalGain >= 0 ? '▲' : '▼'} {Math.abs(summary.totalGainPercent).toFixed(2)}%
-                                </span>
+                        <div className={styles.stat}>
+                            <div className={styles.statLabel}>Total Gain</div>
+                            <div className={`${styles.statFigure} ${summary.totalGain >= 0 ? styles.gain : styles.loss}`}>
+                                {summary.totalGain >= 0 ? '+' : '-'}{formatCurrency(Math.abs(summary.totalGain))}
                             </div>
-                            <div className={styles.lcolVal}>{formatCurrency(Math.abs(summary.totalGain))}</div>
-                            <div className={summary.totalInvested === 0 ? `${styles.ltrack} ${styles.empty}` : styles.ltrack}>
-                                <div className={`${styles.lfill} ${summary.totalGain < 0 ? styles.red : ''}`} style={{ width: `${Math.min(Math.abs(summary.totalGainPercent), 100)}%` }}></div>
-                            </div>
+                            <div className={styles.statSub}>{formatPercent(summary.totalGainPercent)}</div>
                         </div>
-
-                        {/* Market Assets */}
-                        <div className={styles.lcol}>
-                            <div className={styles.lcolHead}>
-                                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3">
-                                    <path d="M2.5 12.5V6.5M7.5 12.5V2.5M12.5 12.5V9" strokeLinecap="round" />
-                                </svg>
-                                <span className={styles.lname}>Market Assets</span>
-                            </div>
-                            <div className={styles.lcolVal}>{formatCurrency(summary.marketValue)}</div>
-                            <div className={summary.totalValue === 0 ? `${styles.ltrack} ${styles.empty}` : styles.ltrack}>
-                                <div className={`${styles.lfill} ${styles.purple}`} style={{ width: `${(summary.marketValue / summary.totalValue) * 100}%` }}></div>
-                            </div>
-                        </div>
-
-                        {/* Manual Assets */}
-                        <div className={styles.lcol}>
-                            <div className={styles.lcolHead}>
-                                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3">
-                                    <rect x="1.5" y="4" width="12" height="9" rx="1.3" />
-                                    <path d="M1.5 4L3 1.5H12L13.5 4" strokeLinecap="round" strokeLinejoin="round" />
-                                    <path d="M6 7.2H9" strokeLinecap="round" />
-                                </svg>
-                                <span className={styles.lname}>Manual Assets</span>
-                            </div>
-                            <div className={styles.lcolVal}>{formatCurrency(summary.manualValue)}</div>
-                            <div className={summary.totalValue === 0 ? `${styles.ltrack} ${styles.empty}` : styles.ltrack}>
-                                <div className={`${styles.lfill} ${styles.orange}`} style={{ width: `${(summary.manualValue / summary.totalValue) * 100}%` }}></div>
-                            </div>
+                        <div className={styles.stat}>
+                            <div className={styles.statLabel}>Current</div>
+                            <div className={styles.statFigure}>{formatCurrency(summary.totalValue)}</div>
                         </div>
                     </div>
+
+                    {holdings.length > 0 && (
+                        <div className={styles.allocation}>
+                            <div className={styles.ringWrap}>
+                                <svg width="64" height="64" viewBox="0 0 64 64">
+                                    <circle cx="32" cy="32" r="26" fill="none" stroke="#20261F" strokeWidth="8"/>
+                                    
+                                    {(() => {
+                                        const sorted = [...holdings].sort((a,b) => b.currentValue - a.currentValue);
+                                        const top3 = sorted.slice(0, 3);
+                                        const ringColors = ['#C9A24A', '#6FA97F', '#C1663F'];
+                                        const totalLen = 163.36;
+                                        let offset = totalLen;
+                                        
+                                        return top3.map((h, i) => {
+                                            const pct = h.currentValue / summary.totalValue;
+                                            const dash = pct * totalLen;
+                                            const thisOffset = offset;
+                                            offset -= dash;
+                                            return (
+                                                <circle 
+                                                    key={h.instrumentId}
+                                                    cx="32" cy="32" r="26" fill="none" 
+                                                    stroke={ringColors[i]} strokeWidth="8"
+                                                    strokeDasharray={`${dash} ${totalLen - dash}`} 
+                                                    strokeDashoffset={thisOffset - totalLen} 
+                                                    strokeLinecap="round"
+                                                />
+                                            );
+                                        });
+                                    })()}
+                                </svg>
+                                <div className={styles.ringCenter}>{holdings.length} funds</div>
+                            </div>
+                            <div className={styles.allocLegend}>
+                                {(() => {
+                                    const sorted = [...holdings].sort((a,b) => b.currentValue - a.currentValue);
+                                    const top3 = sorted.slice(0, 3);
+                                    const ringColors = ['#C9A24A', '#6FA97F', '#C1663F'];
+                                    
+                                    return top3.map((h, i) => (
+                                        <div className={styles.allocItem} key={h.instrumentId}>
+                                            <span className={styles.allocDot} style={{background: ringColors[i]}}></span>
+                                            <span className={styles.allocName}>{h.name}</span>
+                                            <span className={styles.allocPct}>{((h.currentValue / summary.totalValue) * 100).toFixed(0)}%</span>
+                                        </div>
+                                    ));
+                                })()}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className={styles.holdingsHead}>
+                        <div className={styles.holdingsTitle}>Holdings</div>
+                        <div className={styles.holdingsCount}>{String(holdings.length).padStart(3, '0')} / assets</div>
+                    </div>
+
+                    {[...holdings].sort((a,b) => b.currentValue - a.currentValue).map((h, i) => {
+                        const bgColors = ['#C9A24A', '#6FA97F', '#C1663F', '#5b8fe0', '#9b82e3'];
+                        const bg = bgColors[i % bgColors.length];
+                        const initials = h.name.substring(0, 2).toUpperCase();
+                        
+                        return (
+                            <div className={styles.holding} key={h.instrumentId}>
+                                <div className={styles.holdingBadge} style={{background: bg}}>{initials}</div>
+                                <div className={styles.holdingMain}>
+                                    <div className={styles.holdingTop}>
+                                        <div>
+                                            <div className={styles.holdingName}>{h.name}</div>
+                                            <div className={styles.holdingFolio}>{h.tickerSymbol || h.assetType}</div>
+                                        </div>
+                                        <div className={styles.holdingValue}>
+                                            <div className={styles.holdingCmp}>{formatCurrency(h.currentValue)}</div>
+                                            <div className={`${styles.holdingGain} ${h.totalGain >= 0 ? styles.up : styles.down}`}>
+                                                {h.totalGain >= 0 ? '▲' : '▼'} {formatPercent(h.totalInvested > 0 ? (Math.abs(h.totalGain)/h.totalInvested)*100 : 0)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className={styles.holdingDetail}>
+                                        <div className={styles.detailItem}>
+                                            <div className={styles.detailLabel}>Qty</div>
+                                            <div className={styles.detailFigure}>{h.currentQty.toLocaleString('en-IN', {maximumFractionDigits:2})}</div>
+                                        </div>
+                                        <div className={styles.detailItem}>
+                                            <div className={styles.detailLabel}>Avg</div>
+                                            <div className={styles.detailFigure}>{formatCurrency(h.avgBuyPrice)}</div>
+                                        </div>
+                                        <div className={styles.detailItem}>
+                                            <div className={styles.detailLabel}>CMP</div>
+                                            <div className={styles.detailFigure}>{formatCurrency(h.currentPrice)}</div>
+                                        </div>
+                                        <svg className={styles.spark} width="46" height="18" viewBox="0 0 46 18">
+                                            {h.totalGain >= 0 ? (
+                                                <polyline points="0,14 8,12 16,13 24,8 32,9 40,3 46,4" fill="none" stroke="#6FA97F" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                                            ) : (
+                                                <polyline points="0,4 8,7 16,6 24,10 32,9 40,14 46,13" fill="none" stroke="#C1663F" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                                            )}
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    <div className={styles.footerNote}>Values are illustrative · NAV as of previous close</div>
                 </div>
             )}
-
-            <div className={styles.tableCard}>
-                <h3 className={styles.sectionTitle}>Holdings</h3>
-                {holdings.length === 0 ? (
-                    <div className={styles.emptyState}>
-                        <div className={styles.emptyIcon}>
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#7c8794" strokeWidth="1.4">
-                                <rect x="3" y="2.5" width="14" height="15" rx="1.6" />
-                                <path d="M6.5 6.5H13.5M6.5 9.5H13.5M6.5 12.5H10.5" strokeLinecap="round" />
-                            </svg>
-                        </div>
-                        <h3>No holdings yet</h3>
-                        <p>Add a transaction or import your existing portfolio and your positions will show up here automatically.</p>
-                    </div>
-                ) : (
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Qty</th>
-                                <th>Avg Price</th>
-                                <th>CMP</th>
-                                <th>Current Value</th>
-                                <th>P&L</th>
-                                <th>Day Change</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {holdings.map((h) => (
-                                <tr key={h.instrumentId}>
-                                    <td>
-                                        <div className={styles.holdingName}>{h.name}</div>
-                                        <div className={styles.holdingTicker}>{h.tickerSymbol}</div>
-                                    </td>
-                                    <td>{h.currentQty}</td>
-                                    <td>{formatCurrency(h.avgBuyPrice)}</td>
-                                    <td>{formatCurrency(h.currentPrice)}</td>
-                                    <td>{formatCurrency(h.currentValue)}</td>
-                                    <td className={h.totalGain >= 0 ? 'gain' : 'loss'}>
-                                        {formatCurrency(h.totalGain)}
-                                    </td>
-                                    <td className={h.dayGain >= 0 ? 'gain' : 'loss'}>
-                                        {formatCurrency(h.dayGain)}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-            </div>
         </div>
     );
 }

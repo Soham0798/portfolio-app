@@ -146,10 +146,10 @@ export default function HistoryPage() {
                             <Line
                                 type="monotone"
                                 dataKey="value"
-                                stroke="#34d399"
+                                stroke="#60a5fa"
                                 strokeWidth={2}
                                 dot={false}
-                                activeDot={{ r: 4, fill: '#34d399' }}
+                                activeDot={{ r: 4, fill: '#60a5fa' }}
                             />
                         </LineChart>
                     </ResponsiveContainer>

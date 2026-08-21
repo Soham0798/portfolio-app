@@ -149,12 +149,12 @@ export default function TransactionsPage() {
                         <table className="table">
                             <thead>
                                 <tr>
-                                    <th>Date</th>
-                                    <th>Profile</th>
+                                    <th className={styles.hideMobile}>Date</th>
+                                    <th className={styles.hideMobile}>Profile</th>
                                     <th>Instrument</th>
                                     <th>Type</th>
-                                    <th>Qty</th>
-                                    <th>Price</th>
+                                    <th className={styles.hideMobile}>Qty</th>
+                                    <th className={styles.hideMobile}>Price</th>
                                     <th>Total</th>
                                     <th></th>
                                 </tr>
@@ -162,8 +162,8 @@ export default function TransactionsPage() {
                             <tbody>
                                 {transactions.map((t) => (
                                     <tr key={t._id}>
-                                        <td>{formatDate(t.date)}</td>
-                                        <td className={styles.profile}>{t.profile}</td>
+                                        <td className={styles.hideMobile}>{formatDate(t.date)}</td>
+                                        <td className={`${styles.profile} ${styles.hideMobile}`}>{t.profile}</td>
                                         <td>
                                             <div className={styles.instName}>{t.instrumentId?.name || '—'}</div>
                                             <div className={styles.instTicker}>{t.instrumentId?.tickerSymbol || ''}</div>
@@ -173,8 +173,8 @@ export default function TransactionsPage() {
                                                 {t.type}
                                             </span>
                                         </td>
-                                        <td>{t.quantity}</td>
-                                        <td>{formatCurrency(t.price)}</td>
+                                        <td className={styles.hideMobile}>{t.quantity}</td>
+                                        <td className={styles.hideMobile}>{formatCurrency(t.price)}</td>
                                         <td>{formatCurrency(t.quantity * t.price)}</td>
                                         <td>
                                             <button className={styles.deleteBtn} onClick={() => handleDelete(t._id)}>
