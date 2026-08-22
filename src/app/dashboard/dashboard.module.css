@@ -632,3 +632,356 @@
     line-height: 1.6;
     text-align: center;
 }
+
+/* ===== DESKTOP SPECIFIC STYLES ===== */
+
+@media (min-width: 1024px) {
+    .statementDevice {
+        display: none;
+    }
+}
+
+@media (max-width: 1023px) {
+    .desktopView {
+        display: none;
+    }
+}
+
+.desktopView {
+    --ink: #0A0F1C;
+    --surface: #121A2C;
+    --surface-raised: #17233A;
+    --hairline: #253355;
+    --hairline-soft: #1B2740;
+    --paper: #EDF1F8;
+    --paper-dim: #8A96B5;
+    --paper-faint: #56607F;
+    --accent: #5B8DEF;
+    --accent-dim: #2C4A85;
+    --periwinkle: #8C97E8;
+    --gain: #4FB08C;
+    --gain-dim: #1F5C4A;
+    --loss: #D8735F;
+    --loss-dim: #7A3B30;
+
+    max-width: 1280px;
+    padding: 26px 40px 60px;
+    margin: 0 auto;
+    width: 100%;
+    
+    background-image: radial-gradient(ellipse 900px 400px at 70% -10%, rgba(91,141,239,0.08), transparent);
+    color: var(--paper);
+}
+
+.gridTop {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+/* Hero */
+.hero {
+    background: var(--surface);
+    border: 1px solid var(--hairline-soft);
+    border-radius: 18px;
+    padding: 26px 30px;
+}
+
+.desktopEyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px; 
+    letter-spacing: 0.16em; 
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex; 
+    align-items: center; 
+    gap: 10px;
+    margin-bottom: 18px;
+}
+.desktopEyebrow::after {
+    content: ""; 
+    flex: 1; 
+    height: 1px; 
+    background: linear-gradient(90deg, var(--hairline), transparent);
+}
+
+.desktopValueRow {
+    display: flex; 
+    align-items: baseline; 
+    gap: 8px;
+}
+.desktopRupee {
+    font-family: 'Fraunces', serif; 
+    font-size: 30px; 
+    color: var(--paper-faint); 
+    align-self: flex-start; 
+    margin-top: 10px;
+}
+.desktopTotalValue {
+    font-family: 'Fraunces', serif; 
+    font-size: 60px; 
+    font-weight: 440; 
+    letter-spacing: -0.01em; 
+    line-height: 1;
+}
+
+.desktopMovementRow {
+    display: flex; 
+    align-items: center; 
+    gap: 16px; 
+    margin-top: 18px;
+}
+.desktopMovement {
+    display: flex; 
+    align-items: center; 
+    gap: 7px; 
+    font-family: 'IBM Plex Mono', monospace; 
+    font-size: 14px;
+}
+.desktopMovement.up { color: var(--gain); }
+.desktopMovement.down { color: var(--loss); }
+.desktopMovementLabel {
+    color: var(--paper-faint); 
+    font-family: 'Inter', sans-serif; 
+    font-size: 11.5px; 
+    margin-left: 2px;
+}
+
+.desktopSeal {
+    margin-left: auto; 
+    width: 42px; 
+    height: 42px; 
+    border-radius: 50%;
+    border: 1px solid var(--accent-dim);
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    position: relative;
+}
+.desktopSeal::before {
+    content: ""; 
+    position: absolute; 
+    inset: 3px; 
+    border-radius: 50%; 
+    border: 1px dashed rgba(91,141,239,0.4);
+}
+.desktopSeal svg { width: 16px; height: 16px; }
+
+.desktopStatLedger {
+    display: flex;
+    border-top: 1px solid var(--hairline);
+    margin-top: 24px;
+}
+.desktopStat {
+    flex: 1; 
+    padding: 18px 24px; 
+    position: relative;
+}
+.desktopStat:first-child {
+    padding-left: 0;
+}
+.desktopStat:last-child {
+    padding-right: 0;
+}
+.desktopStat:not(:last-child)::after {
+    content: ""; 
+    position: absolute; 
+    right: 0; 
+    top: 18px; 
+    bottom: 0; 
+    width: 1px; 
+    background: var(--hairline-soft);
+}
+.desktopStatLabel {
+    font-family: 'IBM Plex Mono', monospace; 
+    font-size: 10px; 
+    letter-spacing: 0.1em; 
+    text-transform: uppercase; 
+    color: var(--paper-faint); 
+    margin-bottom: 7px;
+}
+.desktopStatFigure {
+    font-family: 'Fraunces', serif; 
+    font-size: 22px; 
+    font-weight: 440;
+}
+.desktopStatFigure.gain { color: var(--gain); }
+.desktopStatFigure.loss { color: var(--loss); }
+.desktopStatSub {
+    font-family: 'IBM Plex Mono', monospace; 
+    font-size: 10.5px; 
+    color: var(--gain); 
+    margin-top: 3px;
+}
+.desktopStatSub.loss {
+    color: var(--loss);
+}
+
+/* Panels */
+.panelStack {
+    display: flex; 
+    flex-direction: column; 
+    gap: 20px;
+}
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--hairline-soft);
+    border-radius: 18px;
+    padding: 22px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+.desktopRingWrap {
+    position: relative; 
+    width: 74px; 
+    height: 74px; 
+    flex-shrink: 0;
+}
+.desktopRingWrap svg {
+    transform: rotate(-90deg);
+}
+.desktopRingCenter {
+    position: absolute; 
+    inset: 0; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace; 
+    font-size: 10px; 
+    color: var(--paper-dim); 
+    text-align: center; 
+    line-height: 1.3;
+}
+.desktopAllocLegend {
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px; 
+    flex: 1; 
+    min-width: 0;
+}
+.panelTitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px; 
+    letter-spacing: 0.1em; 
+    text-transform: uppercase;
+    color: var(--paper-faint);
+    margin-bottom: 8px;
+}
+.desktopAllocItem {
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    font-size: 12.5px;
+}
+.desktopAllocDot {
+    width: 7px; 
+    height: 7px; 
+    border-radius: 2px; 
+    flex-shrink: 0;
+}
+.desktopAllocName {
+    color: var(--paper-dim); 
+    flex: 1; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis;
+}
+.desktopAllocPct {
+    font-family: 'IBM Plex Mono', monospace; 
+    font-size: 12px;
+}
+
+/* Holdings Table */
+.holdingsCard {
+    background: var(--surface);
+    border: 1px solid var(--hairline-soft);
+    border-radius: 18px;
+    margin-top: 20px;
+    overflow: hidden;
+}
+.holdingsHead {
+    display: flex; 
+    align-items: baseline; 
+    justify-content: space-between;
+    padding: 22px 26px;
+    border-bottom: 1px solid var(--hairline);
+}
+.holdingsTitle {
+    font-family: 'Fraunces', serif; 
+    font-size: 20px; 
+    font-weight: 520;
+}
+.holdingsCount {
+    font-family: 'IBM Plex Mono', monospace; 
+    font-size: 11px; 
+    color: var(--paper-faint);
+}
+
+.table {
+    width: 100%; 
+    border-collapse: collapse;
+}
+.table th {
+    text-align: right;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; 
+    letter-spacing: 0.08em; 
+    text-transform: uppercase;
+    color: var(--paper-faint);
+    font-weight: 500;
+    padding: 14px 26px;
+}
+.table th:first-child { text-align: left; }
+.table td {
+    padding: 16px 26px;
+    border-top: 1px solid var(--hairline-soft);
+    text-align: right;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    vertical-align: middle;
+}
+.table td:first-child { text-align: left; }
+.table tr:hover { background: rgba(91,141,239,0.03); }
+
+.nameCell {
+    display: flex; 
+    align-items: center; 
+    gap: 12px;
+}
+.badge {
+    width: 34px; 
+    height: 34px; 
+    border-radius: 9px; 
+    flex-shrink: 0;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    font-family: 'Fraunces', serif; 
+    font-size: 12px; 
+    font-weight: 520; 
+    color: #0A0F1C;
+}
+.fundName {
+    font-family: 'Inter', sans-serif; 
+    font-size: 13px; 
+    font-weight: 500; 
+    color: var(--paper);
+}
+.fundSub {
+    font-family: 'IBM Plex Mono', monospace; 
+    font-size: 10px; 
+    color: var(--paper-faint); 
+    margin-top: 2px;
+}
+
+.gainCell { font-weight: 500; }
+.gainCell.up { color: var(--gain); }
+.gainCell.down { color: var(--loss); }
+.valueCell { font-weight: 600; color: var(--paper); }
+
+.sparkCell svg {
+    display: block; 
+    margin-left: auto;
+}
