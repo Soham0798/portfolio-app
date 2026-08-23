@@ -11,8 +11,16 @@ export async function DELETE(req: NextRequest) {
     await dbConnect();
 
     try {
-        await Transaction.deleteMany({ userId: user.userId });
-        await ManualAsset.deleteMany({ userId: user.userId });
+        const url = new URL(req.url);
+        const profile = url.searchParams.get('profile');
+
+        const query: any = { userId: user.userId };
+        if (profile && profile !== 'all' && profile !== 'combined') {
+            query.profile = profile;
+        }
+
+        await Transaction.deleteMany(query);
+        await ManualAsset.deleteMany(query);
 
         return NextResponse.json({ message: 'All transactions and manual assets deleted successfully' });
     } catch (error: any) {

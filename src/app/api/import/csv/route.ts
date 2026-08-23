@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
             results = await parseZerodha(lines, user.userId, profile);
         } else if (source === 'groww') {
             results = await parseGroww(lines, user.userId, profile);
+        } else if (source === 'goldenbulls') {
+            results = await parseGoldenBulls(lines, user.userId);
         } else {
             return NextResponse.json({ error: 'Unsupported source' }, { status: 400 });
         }
@@ -273,3 +275,179 @@ async function parseGroww(lines: string[], userId: string, profile: string) {
 
     return results;
 }
+
+// ===== Golden Bulls CSV Parser =====
+// Holdings snapshot — may be tab-separated or comma-separated.
+// Structure:
+//   Metadata rows (company name, email, mobile, summary) — skip
+//   Profile name row (e.g. "Sameer" or "Sameer Arvind Patwardhan (PAN)")
+//   Header row: Scrip | Amount Invested | Current value | ... | Balance shares | Average price | Market price | ...
+//   Data rows: stock name | numbers...
+//   Category rows: single label like "Paints", "Banks" — skip
+//   "Total" row — skip
+async function parseGoldenBulls(lines: string[], userId: string) {
+    console.log(`Starting Golden Bulls parse: ${lines.length} lines`);
+    const results = { imported: 0, skipped: 0, errors: [] as string[] };
+
+    // Auto-detect delimiter: if tabs are common, use tab; otherwise comma
+    const tabCount = lines.reduce((n, l) => n + (l.includes('\t') ? 1 : 0), 0);
+    const delimiter = tabCount > lines.length * 0.3 ? '\t' : ',';
+
+    let currentProfile = '';
+    let colMap: Record<string, number> = {};
+    let headersFound = false;
+    const knownProfiles = ['sameer', 'snehal', 'soham'];
+
+    // Map full company names from Golden Bulls to correct NSE tickers
+    const tickerMap: Record<string, string> = {
+        'sterlite technologies limited': 'STLTECH.NS',
+        'state bank of india': 'SBIN.NS',
+        'infosys ltd.': 'INFY.NS',
+        'infosys ltd': 'INFY.NS',
+        'titan company limited': 'TITAN.NS',
+        'tata consumer products ltd': 'TATACONSUM.NS',
+        'asian paints ltd': 'ASIANPAINT.NS',
+        'larsen & toubro ltd': 'LT.NS',
+        'dabur india ltd': 'DABUR.NS',
+        'icici bank ltd': 'ICICIBANK.NS',
+        'lupin ltd': 'LUPIN.NS',
+        'pfizer ltd': 'PFIZER.NS',
+        'one 97 communications limited': 'PAYTM.NS',
+        'saregama india ltd': 'SAREGAMA.NS',
+        'triveni engineering and industries ltd': 'TRIVENI.NS',
+        'anant raj ltd': 'ANANTRAJ.NS',
+        'ashapura minechem ltd': 'ASHAPURMIN.NS',
+        'graphite india ltd': 'GRAPHITE.NS',
+        'lakshmi vilas bank ltd': 'LAKSHVILAS.NS'
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        let cols: string[] = [];
+        let curr = '';
+        let inQuotes = false;
+        for (let j = 0; j < line.length; j++) {
+            const char = line[j];
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === delimiter && !inQuotes) {
+                cols.push(curr.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+                curr = '';
+            } else {
+                curr += char;
+            }
+        }
+        cols.push(curr.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+
+        // --- Detect profile header ---
+        const firstCellLower = cols[0].toLowerCase();
+        const matchedProfile = knownProfiles.find(p => firstCellLower.startsWith(p));
+        if (matchedProfile) {
+            const numericCells = cols.filter(c => /^\d/.test(c.trim())).length;
+            if (numericCells <= 1) {
+                console.log(`Found profile: ${matchedProfile} at line ${i}`);
+                currentProfile = matchedProfile;
+                headersFound = false;
+                continue;
+            }
+        }
+
+        // --- Detect column headers row ---
+        if (line.toLowerCase().includes('scrip') && line.toLowerCase().includes('balance')) {
+            const findCol = (keywords: string[]) => {
+                return cols.findIndex(c => keywords.some(k => c.toLowerCase().includes(k.toLowerCase())));
+            };
+            colMap = {
+                scrip: findCol(['Scrip']),
+                balanceShares: findCol(['Balance shares', 'Balance Shares']),
+                averagePrice: findCol(['Average price', 'Average Price']),
+                marketPrice: findCol(['Market price', 'Market Price']),
+            };
+            headersFound = true;
+            console.log(`Found headers at line ${i}:`, colMap);
+            continue;
+        }
+
+        // Skip until we have both a profile and headers
+        if (!currentProfile || !headersFound) {
+            if (i < 20) console.log(`Skipping line ${i} (waiting for profile/headers):`, line);
+            continue;
+        }
+
+        // --- Parse data row ---
+        const scrip = colMap.scrip >= 0 ? (cols[colMap.scrip] || '') : '';
+        const balanceStr = colMap.balanceShares >= 0 ? (cols[colMap.balanceShares] || '').replace(/[^0-9.-]/g, '') : '';
+        const avgPriceStr = colMap.averagePrice >= 0 ? (cols[colMap.averagePrice] || '').replace(/[^0-9.-]/g, '') : '';
+        const marketPriceStr = colMap.marketPrice >= 0 ? (cols[colMap.marketPrice] || '').replace(/[^0-9.-]/g, '') : '';
+
+        if (!scrip.trim()) continue;
+
+        const scripLower = scrip.toLowerCase().trim();
+        if (scripLower === 'total' || scripLower === 'grand total' || scripLower === 'summary' || scripLower.startsWith('total ')) {
+            console.log(`Skipping total row: ${scrip}`);
+            continue;
+        }
+
+        const qty = parseFloat(balanceStr);
+        const avgPrice = parseFloat(avgPriceStr);
+        const mktPrice = parseFloat(marketPriceStr);
+
+        // Skip rows where numeric fields aren't valid (catches category labels, metadata, etc.)
+        if (isNaN(qty) || isNaN(avgPrice) || qty <= 0 || avgPrice <= 0) {
+            console.log(`Skipping invalid numeric data for scrip '${scrip}': qty=${qty}, avgPrice=${avgPrice}`);
+            continue;
+        }
+
+        const finalMktPrice = isNaN(mktPrice) ? avgPrice : mktPrice;
+
+        try {
+            // Check if we have a known mapping for this full name
+            const scripLowerMap = scrip.toLowerCase().trim();
+            const tickerSymbol = tickerMap[scripLowerMap] || `${scrip.replace(/\s+/g, '').toUpperCase()}.NS`;
+
+            let instrument = await Instrument.findOne({
+                $or: [
+                    { tickerSymbol },
+                    { name: { $regex: new RegExp(`^${scrip.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i') } },
+                ]
+            });
+
+            if (!instrument) {
+                instrument = await Instrument.create({
+                    name: scrip,
+                    tickerSymbol,
+                    assetType: 'STOCK',
+                    exchange: 'NSE',
+                    currentPrice: finalMktPrice,
+                    previousClose: finalMktPrice,
+                    isActive: true,
+                });
+            }
+
+            await Transaction.create({
+                userId,
+                profile: currentProfile,
+                instrumentId: instrument._id,
+                type: 'BUY',
+                date: new Date(),
+                quantity: qty,
+                price: avgPrice,
+                fees: 0,
+                notes: 'Imported from Golden Bulls (holdings snapshot)',
+            });
+
+            console.log(`Imported ${scrip} [${currentProfile}]`);
+            results.imported++;
+        } catch (err: any) {
+            console.error(`Error importing ${scrip}:`, err);
+            results.errors.push(`Row ${i + 1} (${scrip}) [${currentProfile}]: ${err.message}`);
+            results.skipped++;
+        }
+    }
+
+    console.log('Golden Bulls parse complete:', results);
+    return results;
+}
+

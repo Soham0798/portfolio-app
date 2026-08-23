@@ -121,13 +121,31 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     };
 
     const handleClearData = async () => {
-        if (!confirm('WARNING: This will permanently delete ALL your transactions and manual assets! Are you sure?')) {
+        const choice = window.prompt("Type 'all' to delete data for ALL profiles.\nOr type a specific profile name (sameer, snehal, soham) to delete only that profile's data:");
+        
+        if (!choice) return;
+        
+        const c = choice.toLowerCase().trim();
+        const validProfiles = ['sameer', 'snehal', 'soham', 'all', 'combined'];
+        
+        if (!validProfiles.includes(c)) {
+            alert('Invalid choice. Data not cleared. (Must be sameer, snehal, soham, or all)');
             return;
         }
+
+        const profileToDelete = c;
+        const confirmMsg = (profileToDelete === 'all' || profileToDelete === 'combined')
+            ? 'WARNING: This will permanently delete ALL your transactions and manual assets across ALL profiles! Are you sure?'
+            : `WARNING: This will permanently delete transactions and manual assets for the profile "${profileToDelete}"! Are you sure?`;
+
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+        
         try {
-            const res = await fetch('/api/settings/clear-data', { method: 'DELETE' });
+            const res = await fetch(`/api/settings/clear-data?profile=${profileToDelete}`, { method: 'DELETE' });
             if (res.ok) {
-                alert('Data cleared successfully!');
+                alert(`Data for ${profileToDelete} cleared successfully!`);
                 window.location.reload();
             } else {
                 alert('Failed to clear data');

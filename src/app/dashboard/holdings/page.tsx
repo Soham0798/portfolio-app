@@ -40,7 +40,7 @@ interface Summary {
 }
 
 export default function HoldingsPage() {
-    const { profile, setProfile } = useProfile();
+    const { profile } = useProfile();
     const [holdings, setHoldings] = useState<Holding[]>([]);
     const [manualAssets, setManualAssets] = useState<ManualAsset[]>([]);
     const [summary, setSummary] = useState<Summary | null>(null);
@@ -94,81 +94,81 @@ export default function HoldingsPage() {
         BOND: 'Bonds',
     };
 
+    const badgeColors = ['#5B8DEF', '#8C97E8', '#4FB08C', '#D8735F', '#C9A24A'];
+
     if (loading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#8A96B5', fontFamily: '"IBM Plex Mono", monospace', fontSize: '12px' }}>
+            <div className={styles.loading}>
                 Loading holdings...
             </div>
         );
     }
 
+    const profileLabel = profile === 'combined' ? 'Combined' : profile.charAt(0).toUpperCase() + profile.slice(1);
+
     return (
-        <div className={styles.device}>
-            <div className={styles.topbar}>
-                <div className={styles.pageTitle}>Holdings</div>
-            </div>
+        <div className={styles.page}>
+            <div className={styles.pageInner}>
 
-            <div className={styles.scrollBody}>
+                <div className={styles.pageHead}>
+                    <div className={styles.eyebrow}>{profileLabel} · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                    <div className={styles.pageTitle}>Holdings</div>
+                </div>
+
                 {summary && (
-                    <div className={styles.statGrid}>
-                        <div className={styles.statCard}>
-                            <div className={styles.statCardHead}>
-                                <div className={styles.statCardIcon} style={{ background: 'rgba(96,165,250,0.15)' }}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                    <div className={styles.statBand}>
+                        <div className={styles.stat}>
+                            <div className={styles.statTop}>
+                                <div className={styles.statIcon} style={{ background: 'rgba(91,141,239,0.15)' }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="#5B8DEF" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
                                 </div>
-                                <div className={styles.statCardLabel}>Total Value</div>
+                                <div className={styles.statLabel}>Total Value</div>
                             </div>
-                            <div className={styles.statCardFigure}>{formatCurrency(summary.totalValue)}</div>
-                            <div className={styles.statBar}><div className={styles.statBarFill} style={{ width: '100%', background: '#60A5FA' }}></div></div>
+                            <div className={styles.statFigure}>{formatCurrency(summary.totalValue)}</div>
+                            <div className={styles.statBar}><div className={styles.statBarFill} style={{ width: '100%', background: '#5B8DEF' }}></div></div>
                         </div>
 
-                        <div className={styles.statCard}>
-                            <div className={styles.statCardHead}>
-                                <div className={styles.statCardIcon} style={{ background: 'rgba(167,139,250,0.15)' }}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+                        <div className={styles.stat}>
+                            <div className={styles.statTop}>
+                                <div className={styles.statIcon} style={{ background: 'rgba(140,151,232,0.15)' }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="#8C97E8" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" /></svg>
                                 </div>
-                                <div className={styles.statCardLabel}>Invested</div>
+                                <div className={styles.statLabel}>Invested</div>
                             </div>
-                            <div className={styles.statCardFigure}>{formatCurrency(summary.totalInvested)}</div>
-                            <div className={styles.statBar}>
-                                <div className={styles.statBarFill} style={{ width: `${summary.totalValue > 0 ? (summary.totalInvested / summary.totalValue) * 100 : 0}%`, background: '#A78BFA' }}></div>
-                            </div>
+                            <div className={styles.statFigure}>{formatCurrency(summary.totalInvested)}</div>
+                            <div className={styles.statBar}><div className={styles.statBarFill} style={{ width: `${summary.totalValue > 0 ? (summary.totalInvested / summary.totalValue) * 100 : 0}%`, background: '#8C97E8' }}></div></div>
                         </div>
 
-                        <div className={styles.statCard}>
-                            <div className={styles.statCardHead}>
-                                <div className={styles.statCardIcon} style={{ background: 'rgba(52,211,153,0.15)' }}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
+                        <div className={styles.stat}>
+                            <div className={styles.statTop}>
+                                <div className={styles.statIcon} style={{ background: `rgba(${summary.totalGain >= 0 ? '79,176,140' : '216,115,95'},0.15)` }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke={summary.totalGain >= 0 ? '#4FB08C' : '#D8735F'} strokeWidth="2"><path d="M23 6l-9.5 9.5-5-5L1 18" /><path d="M17 6h6v6" /></svg>
                                 </div>
-                                <div className={styles.statCardLabel}>Total P&L</div>
-                                <div className={styles.statCardTag} style={{ color: summary.totalGain >= 0 ? '#34D399' : '#F87171' }}>
+                                <div className={styles.statLabel}>Total P&L</div>
+                                <div className={styles.statTag} style={{ color: summary.totalGain >= 0 ? '#4FB08C' : '#D8735F' }}>
                                     {summary.totalGain >= 0 ? '▲' : '▼'} {Math.abs(summary.totalGainPercent).toFixed(2)}%
                                 </div>
                             </div>
-                            <div className={styles.statCardFigure} style={{ color: summary.totalGain >= 0 ? '#34D399' : '#F87171' }}>
+                            <div className={styles.statFigure} style={{ color: summary.totalGain >= 0 ? '#4FB08C' : '#D8735F' }}>
                                 {formatCurrency(Math.abs(summary.totalGain))}
                             </div>
-                            <div className={styles.statBar}>
-                                <div className={styles.statBarFill} style={{ width: `${Math.min(Math.abs(summary.totalGainPercent), 100)}%`, background: summary.totalGain >= 0 ? '#34D399' : '#F87171' }}></div>
-                            </div>
+                            <div className={styles.statBar}><div className={styles.statBarFill} style={{ width: `${Math.min(Math.abs(summary.totalGainPercent), 100)}%`, background: summary.totalGain >= 0 ? '#4FB08C' : '#D8735F' }}></div></div>
                         </div>
 
-                        <div className={styles.statCard}>
-                            <div className={styles.statCardHead}>
-                                <div className={styles.statCardIcon} style={{ background: 'rgba(248,113,113,0.15)' }}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg>
+                        <div className={styles.stat}>
+                            <div className={styles.statTop}>
+                                <div className={styles.statIcon} style={{ background: `rgba(${summary.totalDayGain >= 0 ? '79,176,140' : '216,115,95'},0.15)` }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke={summary.totalDayGain >= 0 ? '#4FB08C' : '#D8735F'} strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l4 2" /></svg>
                                 </div>
-                                <div className={styles.statCardLabel}>Day Change</div>
-                                <div className={styles.statCardTag} style={{ color: summary.totalDayGain >= 0 ? '#34D399' : '#F87171' }}>
+                                <div className={styles.statLabel}>Day Change</div>
+                                <div className={styles.statTag} style={{ color: summary.totalDayGain >= 0 ? '#4FB08C' : '#D8735F' }}>
                                     {summary.totalDayGain >= 0 ? '▲' : '▼'} {Math.abs(summary.totalDayGainPercent).toFixed(2)}%
                                 </div>
                             </div>
-                            <div className={styles.statCardFigure} style={{ color: summary.totalDayGain >= 0 ? '#34D399' : '#F87171' }}>
+                            <div className={styles.statFigure} style={{ color: summary.totalDayGain >= 0 ? '#4FB08C' : '#D8735F' }}>
                                 {formatCurrency(Math.abs(summary.totalDayGain))}
                             </div>
-                            <div className={styles.statBar}>
-                                <div className={styles.statBarFill} style={{ width: `${Math.min(Math.abs(summary.totalDayGainPercent) * 10, 100)}%`, background: summary.totalDayGain >= 0 ? '#34D399' : '#F87171' }}></div>
-                            </div>
+                            <div className={styles.statBar}><div className={styles.statBarFill} style={{ width: `${Math.min(Math.abs(summary.totalDayGainPercent) * 10, 100)}%`, background: summary.totalDayGain >= 0 ? '#4FB08C' : '#D8735F' }}></div></div>
                         </div>
                     </div>
                 )}
@@ -182,9 +182,6 @@ export default function HoldingsPage() {
                 {Object.entries(grouped).map(([assetType, items]) => {
                     const groupValue = items.reduce((s, h) => s + h.currentValue, 0);
                     const groupGain = items.reduce((s, h) => s + h.totalGain, 0);
-                    
-                    // Simple color rotation for badges based on name
-                    const badgeColors = ['#60A5FA', '#A78BFA', '#34D399', '#FBBF24'];
 
                     return (
                         <div key={assetType} className={styles.sectionCard}>
@@ -258,7 +255,7 @@ export default function HoldingsPage() {
 
                         <div>
                             {manualAssets.map((a, i) => {
-                                const bColor = ['#60A5FA', '#A78BFA', '#34D399', '#FBBF24'][i % 4];
+                                const bColor = badgeColors[i % badgeColors.length];
                                 const badgeText = a.name.substring(0, 2).toUpperCase();
                                 const returns = a.currentValue - a.totalInvested;
 

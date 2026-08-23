@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useProfile } from '@/components/ProfileContext';
 import styles from './transactions.module.css';
 
@@ -36,6 +36,10 @@ export default function TransactionsPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [showModal, setShowModal] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [instSearch, setInstSearch] = useState('');
+    const [showDropdown, setShowDropdown] = useState(false);
+    const searchRef = useRef<HTMLDivElement>(null);
 
     const [form, setForm] = useState({
         profile: 'sameer',
@@ -81,11 +85,29 @@ export default function TransactionsPage() {
         fetchInstruments();
     }, []);
 
+    useEffect(() => {
+        const handleClick = (e: MouseEvent) => {
+            if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+                setShowDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, []);
+
+    const filteredInstruments = instruments.filter(i =>
+        i.name.toLowerCase().includes(instSearch.toLowerCase()) ||
+        i.tickerSymbol.toLowerCase().includes(instSearch.toLowerCase())
+    ).slice(0, 50);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await fetch('/api/transactions', {
-                method: 'POST',
+            const url = editingId ? `/api/transactions/${editingId}` : '/api/transactions';
+            const method = editingId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...form,
@@ -97,6 +119,7 @@ export default function TransactionsPage() {
 
             if (res.ok) {
                 setShowModal(false);
+                setEditingId(null);
                 setForm({
                     profile: 'sameer',
                     instrumentId: '',
@@ -107,11 +130,28 @@ export default function TransactionsPage() {
                     fees: '0',
                     notes: '',
                 });
+                setInstSearch('');
                 fetchTransactions();
             }
         } catch (err) {
             console.error('Failed to create transaction:', err);
         }
+    };
+
+    const handleEdit = (t: Transaction) => {
+        setForm({
+            profile: t.profile,
+            instrumentId: t.instrumentId?._id || '',
+            type: t.type,
+            date: new Date(t.date).toISOString().split('T')[0],
+            quantity: String(t.quantity),
+            price: String(t.price),
+            fees: String(t.fees || 0),
+            notes: t.notes || '',
+        });
+        setInstSearch(t.instrumentId ? `${t.instrumentId.name} (${t.instrumentId.tickerSymbol})` : '');
+        setEditingId(t._id);
+        setShowModal(true);
     };
 
     const handleDelete = async (id: string) => {
@@ -134,7 +174,21 @@ export default function TransactionsPage() {
         <div className={styles.page}>
             <div className={styles.header}>
                 <h2 className={styles.title}>Transactions</h2>
-                <button className="btn-primary" onClick={() => setShowModal(true)}>
+                <button className="btn-primary" onClick={() => {
+                    setEditingId(null);
+                    setForm({
+                        profile: 'sameer',
+                        instrumentId: '',
+                        type: 'BUY',
+                        date: new Date().toISOString().split('T')[0],
+                        quantity: '',
+                        price: '',
+                        fees: '0',
+                        notes: '',
+                    });
+                    setInstSearch('');
+                    setShowModal(true);
+                }}>
                     + Add Transaction
                 </button>
             </div>
@@ -176,7 +230,10 @@ export default function TransactionsPage() {
                                         <td className={styles.hideMobile}>{t.quantity}</td>
                                         <td className={styles.hideMobile}>{formatCurrency(t.price)}</td>
                                         <td>{formatCurrency(t.quantity * t.price)}</td>
-                                        <td>
+                                        <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+                                            <button className={styles.deleteBtn} style={{ marginRight: '8px', color: 'var(--periwinkle)' }} onClick={() => handleEdit(t)}>
+                                                ✎
+                                            </button>
                                             <button className={styles.deleteBtn} onClick={() => handleDelete(t._id)}>
                                                 ✕
                                             </button>
@@ -210,9 +267,9 @@ export default function TransactionsPage() {
             </div>
 
             {showModal && (
-                <div className={styles.overlay} onClick={() => setShowModal(false)}>
+                <div className={styles.overlay} onClick={() => { setShowModal(false); setEditingId(null); setInstSearch(''); }}>
                     <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-                        <h3 className={styles.modalTitle}>Add Transaction</h3>
+                        <h3 className={styles.modalTitle}>{editingId ? 'Edit Transaction' : 'Add Transaction'}</h3>
                         <form onSubmit={handleSubmit} className={styles.form}>
                             <div className={styles.row}>
                                 <div className={styles.field}>
@@ -241,21 +298,47 @@ export default function TransactionsPage() {
                                 </div>
                             </div>
 
-                            <div className={styles.field}>
+                            <div className={styles.field} ref={searchRef} style={{ position: 'relative' }}>
                                 <label className="label">Instrument</label>
-                                <select
+                                <input
+                                    type="text"
                                     className="input"
-                                    value={form.instrumentId}
-                                    onChange={(e) => setForm({ ...form, instrumentId: e.target.value })}
+                                    placeholder="Search instrument..."
+                                    value={instSearch}
+                                    onChange={(e) => {
+                                        setInstSearch(e.target.value);
+                                        setShowDropdown(true);
+                                        if (e.target.value === '') {
+                                            setForm({ ...form, instrumentId: '' });
+                                        }
+                                    }}
+                                    onFocus={() => setShowDropdown(true)}
+                                    autoComplete="off"
                                     required
-                                >
-                                    <option value="">Select instrument...</option>
-                                    {instruments.map((inst) => (
-                                        <option key={inst._id} value={inst._id}>
-                                            {inst.name} ({inst.tickerSymbol})
-                                        </option>
-                                    ))}
-                                </select>
+                                />
+                                {showDropdown && (
+                                    <div className={styles.dropdown}>
+                                        {filteredInstruments.length > 0 ? (
+                                            filteredInstruments.map((inst) => (
+                                                <button
+                                                    key={inst._id}
+                                                    type="button"
+                                                    className={styles.dropdownItem}
+                                                    onClick={() => {
+                                                        setForm({ ...form, instrumentId: inst._id });
+                                                        setInstSearch(`${inst.name} (${inst.tickerSymbol})`);
+                                                        setShowDropdown(false);
+                                                    }}
+                                                >
+                                                    <span className={styles.dropdownName}>{inst.name}</span>
+                                                    <span className={styles.dropdownTicker}>{inst.tickerSymbol}</span>
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className={styles.dropdownEmpty}>No instruments found</div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className={styles.field}>

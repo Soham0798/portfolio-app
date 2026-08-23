@@ -25,7 +25,8 @@ export default function ImportPage() {
             formData.append('source', source);
             formData.append('profile', profile);
 
-            const res = await fetch('/api/import/csv', {
+            const apiRoute = source === 'nsdl' ? '/api/import/nsdl' : '/api/import/csv';
+            const res = await fetch(apiRoute, {
                 method: 'POST',
                 body: formData,
             });
@@ -48,7 +49,7 @@ export default function ImportPage() {
         <div className={styles.page}>
             <h2 className={styles.title}>Import Transactions</h2>
             <p className={styles.subtitle}>
-                Upload a CSV tradebook from Zerodha or Groww to bulk-import your transactions.
+                Upload a CSV tradebook from Zerodha, Groww, or Golden Bulls to bulk-import your transactions.
             </p>
 
             <div className={`glass-card ${styles.card}`}>
@@ -59,6 +60,8 @@ export default function ImportPage() {
                             <select className="input" value={source} onChange={(e) => setSource(e.target.value)}>
                                 <option value="zerodha">Zerodha</option>
                                 <option value="groww">Groww</option>
+                                <option value="goldenbulls">Golden Bulls</option>
+                                <option value="nsdl">NSDL (CAS PDF)</option>
                             </select>
                         </div>
                         <div className={styles.field}>
@@ -76,7 +79,7 @@ export default function ImportPage() {
                         <div className={styles.fileInput}>
                             <input
                                 type="file"
-                                accept=".csv"
+                                accept={source === 'nsdl' ? '.pdf' : '.csv'}
                                 onChange={(e) => setFile(e.target.files?.[0] || null)}
                                 required
                             />
@@ -139,6 +142,24 @@ export default function ImportPage() {
                         <li>Go to <strong>Dashboard → Investments → Stocks/MF</strong></li>
                         <li>Click <strong>Transaction History → Download</strong></li>
                         <li>Select CSV format</li>
+                    </ol>
+                </div>
+
+                <div className={styles.instructionBlock}>
+                    <h4>Golden Bulls</h4>
+                    <ol className={styles.steps}>
+                        <li>Download the <strong>Holdings CSV</strong> from your Golden Bulls account</li>
+                        <li>The CSV should contain profile sections (e.g. Sameer, Snehal) with columns: Scrip, Balance shares, Average price, etc.</li>
+                        <li>Profiles are auto-detected from the CSV — the profile dropdown is ignored for this source</li>
+                    </ol>
+                </div>
+
+                <div className={styles.instructionBlock}>
+                    <h4>NSDL CAS</h4>
+                    <ol className={styles.steps}>
+                        <li>Check your email for the monthly NSDL Consolidated Account Statement (CAS).</li>
+                        <li>Ensure the PDF is <strong>NOT</strong> password protected before uploading (you can print/save as PDF without password).</li>
+                        <li>Select <strong>NSDL (CAS PDF)</strong> and choose the profile you want the assets assigned to.</li>
                     </ol>
                 </div>
             </div>
