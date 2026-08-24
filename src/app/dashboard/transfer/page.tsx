@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../import/import.module.css';
+import layoutStyles from '../layout.module.css';
 
 export default function TransferPage() {
     const router = useRouter();
@@ -11,8 +12,9 @@ export default function TransferPage() {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [error, setError] = useState('');
+    const [transferConfirmOpen, setTransferConfirmOpen] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
         if (fromProfile === toProfile) {
@@ -20,10 +22,11 @@ export default function TransferPage() {
             return;
         }
 
-        if (!confirm(`Are you sure you want to move ALL data from ${fromProfile} to ${toProfile}?`)) {
-            return;
-        }
+        setTransferConfirmOpen(true);
+    };
 
+    const confirmTransfer = async () => {
+        setTransferConfirmOpen(false);
         setLoading(true);
         setResult(null);
         setError('');
@@ -51,6 +54,21 @@ export default function TransferPage() {
 
     return (
         <div className={styles.page}>
+            {transferConfirmOpen && (
+                <div className={layoutStyles.modalOverlay} onClick={() => setTransferConfirmOpen(false)}>
+                    <div className={layoutStyles.modalContent} onClick={e => e.stopPropagation()}>
+                        <h3 className={layoutStyles.modalTitle}>Confirm Transfer</h3>
+                        <p className={layoutStyles.modalDesc}>
+                            Are you sure you want to move <strong>ALL</strong> data from <strong>{fromProfile}</strong> to <strong>{toProfile}</strong>?
+                        </p>
+                        <div className={layoutStyles.modalActions}>
+                            <button className={layoutStyles.modalBtnCancel} onClick={() => setTransferConfirmOpen(false)}>Cancel</button>
+                            <button className={layoutStyles.modalBtnDanger} onClick={confirmTransfer}>Transfer Data</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <h2 className={styles.title}>Transfer Data</h2>
             <p className={styles.subtitle}>
                 Bulk move all transactions and manual assets from one profile to another.

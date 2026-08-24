@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useProfile } from '@/components/ProfileContext';
 import styles from './transactions.module.css';
+import layoutStyles from '../layout.module.css';
 
 interface Transaction {
     _id: string;
@@ -37,6 +38,9 @@ export default function TransactionsPage() {
     const [totalPages, setTotalPages] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    const [formError, setFormError] = useState('');
+    const [formSuccess, setFormSuccess] = useState('');
     const [instSearch, setInstSearch] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
@@ -102,6 +106,14 @@ export default function TransactionsPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setFormError('');
+        setFormSuccess('');
+
+        if (!form.instrumentId) {
+            setFormError('Please select an instrument.');
+            return;
+        }
+
         try {
             const url = editingId ? `/api/transactions/${editingId}` : '/api/transactions';
             const method = editingId ? 'PUT' : 'POST';
@@ -118,23 +130,31 @@ export default function TransactionsPage() {
             });
 
             if (res.ok) {
-                setShowModal(false);
-                setEditingId(null);
-                setForm({
-                    profile: 'sameer',
-                    instrumentId: '',
-                    type: 'BUY',
-                    date: new Date().toISOString().split('T')[0],
-                    quantity: '',
-                    price: '',
-                    fees: '0',
-                    notes: '',
-                });
-                setInstSearch('');
-                fetchTransactions();
+                setFormSuccess(editingId ? 'Transaction updated!' : 'Transaction added!');
+                setTimeout(() => {
+                    setShowModal(false);
+                    setEditingId(null);
+                    setForm({
+                        profile: 'sameer',
+                        instrumentId: '',
+                        type: 'BUY',
+                        date: new Date().toISOString().split('T')[0],
+                        quantity: '',
+                        price: '',
+                        fees: '0',
+                        notes: '',
+                    });
+                    setInstSearch('');
+                    fetchTransactions();
+                    setFormSuccess('');
+                }, 1000);
+            } else {
+                const data = await res.json();
+                setFormError(data.error || 'Failed to save transaction');
             }
         } catch (err) {
             console.error('Failed to create transaction:', err);
+            setFormError('Something went wrong');
         }
     };
 
@@ -154,13 +174,19 @@ export default function TransactionsPage() {
         setShowModal(true);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this transaction?')) return;
+    const handleDelete = (id: string) => {
+        setDeleteConfirmId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirmId) return;
         try {
-            await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+            await fetch(`/api/transactions/${deleteConfirmId}`, { method: 'DELETE' });
             fetchTransactions();
         } catch (err) {
             console.error('Failed to delete:', err);
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -172,6 +198,21 @@ export default function TransactionsPage() {
 
     return (
         <div className={styles.page}>
+            {deleteConfirmId && (
+                <div className={layoutStyles.modalOverlay} onClick={() => setDeleteConfirmId(null)}>
+                    <div className={layoutStyles.modalContent} onClick={e => e.stopPropagation()}>
+                        <h3 className={layoutStyles.modalTitle}>Delete Transaction</h3>
+                        <p className={layoutStyles.modalDesc}>
+                            Are you sure you want to delete this transaction? This action cannot be undone.
+                        </p>
+                        <div className={layoutStyles.modalActions}>
+                            <button className={layoutStyles.modalBtnCancel} onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+                            <button className={layoutStyles.modalBtnDanger} onClick={confirmDelete}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className={styles.header}>
                 <h2 className={styles.title}>Transactions</h2>
                 <button className="btn-primary" onClick={() => {
@@ -393,23 +434,16 @@ export default function TransactionsPage() {
                                 </div>
                                 <div className={styles.field}>
                                     <label className="label">Notes</label>
-                                    <input
-                                        type="text"
-                                        className="input"
-                                        placeholder="Optional"
-                                        value={form.notes}
-                                        onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                                    />
+                                    <input type="text" className="input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
                                 </div>
                             </div>
 
-                            <div className={styles.formActions}>
-                                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn-primary">
-                                    Add Transaction
-                                </button>
+                            {formError && <div style={{ color: '#fca5a5', fontSize: '13px', marginTop: '16px' }}>{formError}</div>}
+                            {formSuccess && <div style={{ color: '#34d399', fontSize: '13px', marginTop: '16px' }}>{formSuccess}</div>}
+
+                            <div className={styles.formActions} style={{ marginTop: '24px' }}>
+                                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn-primary">{editingId ? 'Update' : 'Add'} Transaction</button>
                             </div>
                         </form>
                     </div>

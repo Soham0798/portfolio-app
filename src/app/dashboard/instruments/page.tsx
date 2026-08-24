@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import styles from './instruments.module.css';
+import layoutStyles from '../layout.module.css';
 
 interface Instrument {
     _id: string;
@@ -21,6 +22,9 @@ export default function InstrumentsPage() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    const [formError, setFormError] = useState('');
+    const [formSuccess, setFormSuccess] = useState('');
     const [filterType, setFilterType] = useState('ALL');
 
     const [form, setForm] = useState({
@@ -54,6 +58,9 @@ export default function InstrumentsPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setFormError('');
+        setFormSuccess('');
+
         try {
             const url = editingId ? `/api/instruments/${editingId}` : '/api/instruments';
             const method = editingId ? 'PUT' : 'POST';
@@ -65,15 +72,20 @@ export default function InstrumentsPage() {
             });
 
             if (res.ok) {
-                setShowModal(false);
-                resetForm();
-                fetchInstruments();
+                setFormSuccess(editingId ? 'Instrument updated!' : 'Instrument added!');
+                setTimeout(() => {
+                    setShowModal(false);
+                    resetForm();
+                    fetchInstruments();
+                    setFormSuccess('');
+                }, 1000);
             } else {
                 const data = await res.json();
-                alert(data.error || 'Failed');
+                setFormError(data.error || 'Failed to save instrument');
             }
         } catch (err) {
             console.error('Failed:', err);
+            setFormError('Something went wrong');
         }
     };
 
@@ -88,13 +100,19 @@ export default function InstrumentsPage() {
         setShowModal(true);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this instrument?')) return;
+    const handleDelete = (id: string) => {
+        setDeleteConfirmId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirmId) return;
         try {
-            await fetch(`/api/instruments/${id}`, { method: 'DELETE' });
+            await fetch(`/api/instruments/${deleteConfirmId}`, { method: 'DELETE' });
             fetchInstruments();
         } catch (err) {
             console.error('Failed:', err);
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -107,6 +125,21 @@ export default function InstrumentsPage() {
 
     return (
         <div className={styles.page}>
+            {deleteConfirmId && (
+                <div className={layoutStyles.modalOverlay} onClick={() => setDeleteConfirmId(null)}>
+                    <div className={layoutStyles.modalContent} onClick={e => e.stopPropagation()}>
+                        <h3 className={layoutStyles.modalTitle}>Delete Instrument</h3>
+                        <p className={layoutStyles.modalDesc}>
+                            Are you sure you want to delete this instrument? This action cannot be undone.
+                        </p>
+                        <div className={layoutStyles.modalActions}>
+                            <button className={layoutStyles.modalBtnCancel} onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+                            <button className={layoutStyles.modalBtnDanger} onClick={confirmDelete}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className={styles.header}>
                 <h2 className={styles.title}>Instruments</h2>
                 <button className="btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>
@@ -254,8 +287,11 @@ export default function InstrumentsPage() {
                                     </select>
                                 </div>
                             </div>
+                            
+                            {formError && <div style={{ color: '#fca5a5', fontSize: '13px', marginTop: '16px' }}>{formError}</div>}
+                            {formSuccess && <div style={{ color: '#34d399', fontSize: '13px', marginTop: '16px' }}>{formSuccess}</div>}
 
-                            <div className={styles.formActions}>
+                            <div className={styles.formActions} style={{ marginTop: '24px' }}>
                                 <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
                                 <button type="submit" className="btn-primary">{editingId ? 'Update' : 'Add'}</button>
                             </div>

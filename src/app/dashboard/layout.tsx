@@ -114,6 +114,9 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     const { profile, setProfile } = useProfile();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+    const [clearModalOpen, setClearModalOpen] = useState(false);
+    const [clearProfileInput, setClearProfileInput] = useState('');
+    const [clearError, setClearError] = useState('');
 
     const handleLogout = async () => {
         await fetch('/api/auth/logout', { method: 'POST' });
@@ -121,37 +124,34 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     };
 
     const handleClearData = async () => {
-        const choice = window.prompt("Type 'all' to delete data for ALL profiles.\nOr type a specific profile name (sameer, snehal, soham) to delete only that profile's data:");
-        
-        if (!choice) return;
-        
-        const c = choice.toLowerCase().trim();
+        setClearProfileInput('');
+        setClearError('');
+        setClearModalOpen(true);
+    };
+
+    const handleClearDataConfirm = async () => {
+        const c = clearProfileInput.toLowerCase().trim();
         const validProfiles = ['sameer', 'snehal', 'soham', 'all', 'combined'];
         
         if (!validProfiles.includes(c)) {
-            alert('Invalid choice. Data not cleared. (Must be sameer, snehal, soham, or all)');
+            setClearError('Invalid choice. Must be sameer, snehal, soham, or all.');
             return;
         }
 
         const profileToDelete = c;
-        const confirmMsg = (profileToDelete === 'all' || profileToDelete === 'combined')
-            ? 'WARNING: This will permanently delete ALL your transactions and manual assets across ALL profiles! Are you sure?'
-            : `WARNING: This will permanently delete transactions and manual assets for the profile "${profileToDelete}"! Are you sure?`;
-
-        if (!confirm(confirmMsg)) {
-            return;
-        }
         
         try {
             const res = await fetch(`/api/settings/clear-data?profile=${profileToDelete}`, { method: 'DELETE' });
             if (res.ok) {
-                alert(`Data for ${profileToDelete} cleared successfully!`);
+                setClearModalOpen(false);
+                setClearProfileInput('');
                 window.location.reload();
             } else {
-                alert('Failed to clear data');
+                setClearError('Failed to clear data');
             }
         } catch (err) {
             console.error(err);
+            setClearError('An error occurred while clearing data');
         }
     };
 
@@ -159,6 +159,40 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         <div className={styles.container}>
             {/* Mobile overlay */}
             {mobileOpen && <div className={styles.mobileOverlay} onClick={() => setMobileOpen(false)} />}
+
+            {/* Clear Data Modal */}
+            {clearModalOpen && (
+                <div className={styles.modalOverlay} onClick={() => setClearModalOpen(false)}>
+                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                        <h3 className={styles.modalTitle}>Clear Profile Data</h3>
+                        <p className={styles.modalDesc}>
+                            Type <strong>all</strong> to delete data for ALL profiles, or type a specific profile name (<strong>sameer</strong>, <strong>snehal</strong>, <strong>soham</strong>) to delete only that profile's data. This action is permanent.
+                        </p>
+                        
+                        <input 
+                            type="text" 
+                            className={styles.modalInput} 
+                            placeholder="Type profile name or 'all'" 
+                            value={clearProfileInput} 
+                            onChange={e => {
+                                setClearProfileInput(e.target.value);
+                                setClearError('');
+                            }} 
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') handleClearDataConfirm();
+                            }}
+                            autoFocus
+                        />
+                        
+                        {clearError && <div style={{ color: '#fca5a5', fontSize: '13px', marginBottom: '16px', marginTop: '-12px' }}>{clearError}</div>}
+                        
+                        <div className={styles.modalActions}>
+                            <button className={styles.modalBtnCancel} onClick={() => setClearModalOpen(false)}>Cancel</button>
+                            <button className={styles.modalBtnDanger} onClick={handleClearDataConfirm}>Delete Data</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <aside className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ''}`}>
                 <div className={styles.brand}>

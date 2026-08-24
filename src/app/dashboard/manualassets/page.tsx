@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useProfile } from '@/components/ProfileContext';
 import styles from './manualassets.module.css';
+import layoutStyles from '../layout.module.css';
 
 interface ManualAsset {
     _id: string;
@@ -33,6 +34,9 @@ export default function AssetsPage() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    const [formError, setFormError] = useState('');
+    const [formSuccess, setFormSuccess] = useState('');
 
     // Manual asset form
     const [form, setForm] = useState({
@@ -152,8 +156,11 @@ export default function AssetsPage() {
 
     const handleMarketSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setFormError('');
+        setFormSuccess('');
+        
         if (!selectedInstrument) {
-            alert('Please search and select an instrument first.');
+            setFormError('Please search and select an instrument first.');
             return;
         }
 
@@ -178,14 +185,17 @@ export default function AssetsPage() {
 
             const data = await res.json();
             if (res.ok) {
-                setShowModal(false);
-                resetForm();
-                alert(`Added ${selectedInstrument.name} successfully!`);
+                setFormSuccess(`Added ${selectedInstrument.name} successfully!`);
+                setTimeout(() => {
+                    setShowModal(false);
+                    resetForm();
+                    setFormSuccess('');
+                }, 1500);
             } else {
-                alert(data.error || 'Failed to add instrument');
+                setFormError(data.error || 'Failed to add instrument');
             }
         } catch {
-            alert('Something went wrong');
+            setFormError('Something went wrong');
         } finally {
             setSubmitting(false);
         }
@@ -193,6 +203,9 @@ export default function AssetsPage() {
 
     const handleManualSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setFormError('');
+        setFormSuccess('');
+        
         try {
             const url = editingId ? `/api/manualassets/${editingId}` : '/api/manualassets';
             const method = editingId ? 'PUT' : 'POST';
@@ -210,12 +223,20 @@ export default function AssetsPage() {
             });
 
             if (res.ok) {
-                setShowModal(false);
-                resetForm();
-                fetchAssets();
+                setFormSuccess(editingId ? 'Asset updated!' : 'Asset added!');
+                setTimeout(() => {
+                    setShowModal(false);
+                    resetForm();
+                    fetchAssets();
+                    setFormSuccess('');
+                }, 1000);
+            } else {
+                const data = await res.json();
+                setFormError(data.error || 'Failed to save asset');
             }
         } catch (err) {
             console.error('Failed to save asset:', err);
+            setFormError('Something went wrong');
         }
     };
 
@@ -233,13 +254,19 @@ export default function AssetsPage() {
         setShowModal(true);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this asset?')) return;
+    const handleDelete = (id: string) => {
+        setDeleteConfirmId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirmId) return;
         try {
-            await fetch(`/api/manualassets/${id}`, { method: 'DELETE' });
+            await fetch(`/api/manualassets/${deleteConfirmId}`, { method: 'DELETE' });
             fetchAssets();
         } catch (err) {
             console.error('Failed to delete:', err);
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -248,6 +275,21 @@ export default function AssetsPage() {
 
     return (
         <div className={styles.page}>
+            {deleteConfirmId && (
+                <div className={layoutStyles.modalOverlay} onClick={() => setDeleteConfirmId(null)}>
+                    <div className={layoutStyles.modalContent} onClick={e => e.stopPropagation()}>
+                        <h3 className={layoutStyles.modalTitle}>Delete Asset</h3>
+                        <p className={layoutStyles.modalDesc}>
+                            Are you sure you want to delete this manual asset? This action cannot be undone.
+                        </p>
+                        <div className={layoutStyles.modalActions}>
+                            <button className={layoutStyles.modalBtnCancel} onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+                            <button className={layoutStyles.modalBtnDanger} onClick={confirmDelete}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className={styles.header}>
                 <h2 className={styles.title}>Assets</h2>
                 <button className="btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>
@@ -426,7 +468,10 @@ export default function AssetsPage() {
                                     <input type="number" className="input" placeholder="0" step="any" value={marketForm.fees} onChange={(e) => setMarketForm({ ...marketForm, fees: e.target.value })} />
                                 </div>
 
-                                <div className={styles.formActions}>
+                                {formError && <div style={{ color: '#fca5a5', fontSize: '13px', marginTop: '16px' }}>{formError}</div>}
+                                {formSuccess && <div style={{ color: '#34d399', fontSize: '13px', marginTop: '16px' }}>{formSuccess}</div>}
+
+                                <div className={styles.formActions} style={{ marginTop: '24px' }}>
                                     <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
                                     <button type="submit" className="btn-primary" disabled={submitting}>
                                         {submitting ? 'Adding...' : 'Add to Portfolio'}
@@ -486,7 +531,10 @@ export default function AssetsPage() {
                                     </div>
                                 </div>
 
-                                <div className={styles.formActions}>
+                                {formError && <div style={{ color: '#fca5a5', fontSize: '13px', marginTop: '16px' }}>{formError}</div>}
+                                {formSuccess && <div style={{ color: '#34d399', fontSize: '13px', marginTop: '16px' }}>{formSuccess}</div>}
+
+                                <div className={styles.formActions} style={{ marginTop: '24px' }}>
                                     <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
                                     <button type="submit" className="btn-primary">{editingId ? 'Update' : 'Add Asset'}</button>
                                 </div>
