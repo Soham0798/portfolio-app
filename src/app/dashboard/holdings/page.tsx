@@ -358,14 +358,22 @@ export default function HoldingsPage() {
                         {sortedManual.map((a, i) => {
                             const returns = (a.currentValue || 0) - (a.totalInvested || 0);
                             const lastUpdated = a.updatedAt ? Math.floor((Date.now() - new Date(a.updatedAt).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                            let displayName = a.name;
+                            let unitsStr = '';
+                            
+                            const unitMatch = a.name.match(/\s*\(([\d.,]+)\s*(units|g)\)$/i);
+                            if (unitMatch) {
+                                unitsStr = `${unitMatch[1]} ${unitMatch[2] === 'g' ? 'g' : ''}`;
+                                displayName = a.name.replace(unitMatch[0], '');
+                            }
                             
                             return (
                                 <motion.div layout initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }} key={a._id} className={styles.holding}>
-                                    <div className={styles.badge} style={{ background: '#D0A24C' }}>{a.name.substring(0, 2).toUpperCase()}</div>
+                                    <div className={styles.badge} style={{ background: '#D0A24C' }}>{displayName.substring(0, 2).toUpperCase()}</div>
                                     <div className={styles.holdingMain}>
                                         <div className={styles.holdingTop}>
                                             <div>
-                                                <div className={styles.holdingName}>{a.name}</div>
+                                                <div className={styles.holdingName}>{displayName}</div>
                                                 <div className={styles.holdingFolio}>
                                                     <span className={styles.manualTag}>Manual</span>
                                                     Updated {lastUpdated === 0 ? 'today' : `${lastUpdated} days ago`}
@@ -374,6 +382,12 @@ export default function HoldingsPage() {
                                             <div className={styles.holdingCmp}>{formatCurrency(a.currentValue || 0)}</div>
                                         </div>
                                         <div className={styles.holdingDetail}>
+                                            {unitsStr && (
+                                                <div className={styles.detailItem}>
+                                                    <div className={styles.detailLabel}>Qty</div>
+                                                    <div className={styles.detailFigure}>{unitsStr}</div>
+                                                </div>
+                                            )}
                                             <div className={styles.detailItem}>
                                                 <div className={styles.detailLabel}>Invested</div>
                                                 <div className={styles.detailFigure}>{formatCurrency(a.totalInvested || 0)}</div>
