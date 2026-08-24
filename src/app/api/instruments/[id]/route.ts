@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import Instrument from '@/models/Instrument';
+import Transaction from '@/models/Transaction';
 
 export async function PUT(
     req: NextRequest,
@@ -39,15 +40,14 @@ export async function DELETE(
     await dbConnect();
 
     const { id } = await params;
-    const instrument = await Instrument.findByIdAndUpdate(
-        id,
-        { isActive: false },
-        { new: true }
-    );
+    const instrument = await Instrument.findByIdAndDelete(id);
 
     if (!instrument) {
         return NextResponse.json({ error: 'Instrument not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ message: 'Instrument deactivated' });
+    // Also remove any transactions referencing this instrument
+    await Transaction.deleteMany({ instrumentId: id });
+
+    return NextResponse.json({ message: 'Instrument deleted' });
 }

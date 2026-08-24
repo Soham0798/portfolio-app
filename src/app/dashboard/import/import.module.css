@@ -89,6 +89,22 @@
     border-color: var(--border-hover);
 }
 
+.fileInput input[type="file"] {
+    color: transparent;
+    width: 100%;
+}
+
+.fileInput input[type="file"]::file-selector-button {
+    color: #ffffff;
+    background: #17233A;
+    border: 1px solid #253355;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-right: 12px;
+}
+
 .fileName {
     font-size: 13px;
     color: var(--text-secondary);

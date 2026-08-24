@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './import.module.css';
 
 export default function ImportPage() {
@@ -10,6 +10,11 @@ export default function ImportPage() {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [error, setError] = useState('');
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -83,7 +88,7 @@ export default function ImportPage() {
                                 onChange={(e) => setFile(e.target.files?.[0] || null)}
                                 required
                             />
-                            {file && <p className={styles.fileName}>{file.name} ({(file.size / 1024).toFixed(1)} KB)</p>}
+                            {file && <p className={styles.fileName}>{file.name.length > 20 ? file.name.substring(0, 20) + '...' : file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)</p>}
                         </div>
                     </div>
 
