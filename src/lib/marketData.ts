@@ -5,7 +5,7 @@ let amfiCacheTime = 0;
 
 export async function getLiveStockPrice(ticker: string): Promise<number | null> {
     try {
-        const quote = await yahooFinance.quote(ticker);
+        const quote = await yahooFinance.quote(ticker) as any;
         return quote?.regularMarketPrice || null;
     } catch (err) {
         console.error(`Failed to fetch stock price for ${ticker}:`, err);
@@ -48,7 +48,7 @@ export async function getLiveMFDetails(isin: string): Promise<{ nav: number; nam
 export async function getLiveGoldPricePerGram(): Promise<number | null> {
     try {
         // Fetch XAUINR=X (Gold in INR per Troy Ounce)
-        const quote = await yahooFinance.quote('XAUINR=X');
+        const quote = await yahooFinance.quote('XAUINR=X') as any;
         if (quote && quote.regularMarketPrice) {
             const pricePerOunce = quote.regularMarketPrice;
             const pricePerGram = pricePerOunce / 31.1034768;
