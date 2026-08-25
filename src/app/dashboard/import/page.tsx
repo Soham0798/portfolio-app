@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from './import.module.css';
 
 export default function ImportPage() {
@@ -10,6 +11,7 @@ export default function ImportPage() {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [error, setError] = useState('');
+    const [successToast, setSuccessToast] = useState('');
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -42,6 +44,8 @@ export default function ImportPage() {
                 setError(data.error || 'Import failed');
             } else {
                 setResult(data.results);
+                setSuccessToast('Import successful!');
+                setTimeout(() => setSuccessToast(''), 3000);
             }
         } catch {
             setError('Something went wrong');
@@ -168,6 +172,23 @@ export default function ImportPage() {
                     </ol>
                 </div>
             </div>
+            <AnimatePresence>
+                {(successToast || error) && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 50, scale: 0.9, x: '-50%' }}
+                        animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
+                        exit={{ opacity: 0, y: 20, scale: 0.9, x: '-50%' }}
+                        transition={{ type: "spring", bounce: 0.4, duration: 0.6 }}
+                        className={styles.toast}
+                        style={{
+                            background: error ? '#f87171' : '#34d399',
+                            color: error ? '#fff' : '#0A0F1C',
+                        }}
+                    >
+                        {error || successToast}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

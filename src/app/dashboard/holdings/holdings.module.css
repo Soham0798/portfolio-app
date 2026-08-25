@@ -24,6 +24,10 @@
       repeating-linear-gradient(180deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
     color: var(--paper);
     padding: 44px clamp(20px, 6vw, 80px) 70px;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.03);
 }
 .pageInner { max-width: 1320px; margin: 0 auto; }
 

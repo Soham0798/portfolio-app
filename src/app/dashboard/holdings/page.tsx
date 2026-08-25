@@ -274,7 +274,11 @@ export default function HoldingsPage() {
                         {sortedStocks.map((h, i) => (
                             <HoldingRow key={h.instrumentId} holding={h} badgeColor={badgeColors[i % badgeColors.length]} formatCurrency={formatCurrency} />
                         ))}
-                        {sortedStocks.length === 0 && <div style={{ padding: '24px', textAlign: 'center', color: 'var(--paper-dim)' }}>No stocks found</div>}
+                        {sortedStocks.length === 0 && (
+                            <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--paper-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', margin: '16px', border: '1px dashed var(--hairline)' }}>
+                                No stocks found
+                            </div>
+                        )}
                     </div>
                 </motion.div>
                 )}
@@ -318,7 +322,11 @@ export default function HoldingsPage() {
                         {sortedFunds.map((h, i) => (
                             <HoldingRow key={h.instrumentId} holding={h} badgeColor={badgeColors[(i+2) % badgeColors.length]} formatCurrency={formatCurrency} />
                         ))}
-                        {sortedFunds.length === 0 && <div style={{ padding: '24px', textAlign: 'center', color: 'var(--paper-dim)' }}>No mutual funds found</div>}
+                        {sortedFunds.length === 0 && (
+                            <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--paper-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', margin: '16px', border: '1px dashed var(--hairline)' }}>
+                                No mutual funds found
+                            </div>
+                        )}
                     </div>
                 </motion.div>
                 )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from './instruments.module.css';
 import layoutStyles from '../layout.module.css';
 
@@ -72,20 +73,22 @@ export default function InstrumentsPage() {
             });
 
             if (res.ok) {
+                setShowModal(false);
+                resetForm();
                 setFormSuccess(editingId ? 'Instrument updated!' : 'Instrument added!');
+                fetchInstruments();
                 setTimeout(() => {
-                    setShowModal(false);
-                    resetForm();
-                    fetchInstruments();
                     setFormSuccess('');
-                }, 1000);
+                }, 3000);
             } else {
                 const data = await res.json();
                 setFormError(data.error || 'Failed to save instrument');
+                setTimeout(() => setFormError(''), 3000);
             }
         } catch (err) {
             console.error('Failed:', err);
             setFormError('Something went wrong');
+            setTimeout(() => setFormError(''), 3000);
         }
     };
 
@@ -288,17 +291,32 @@ export default function InstrumentsPage() {
                                 </div>
                             </div>
                             
-                            {formError && <div style={{ color: '#fca5a5', fontSize: '13px', marginTop: '16px' }}>{formError}</div>}
-                            {formSuccess && <div style={{ color: '#34d399', fontSize: '13px', marginTop: '16px' }}>{formSuccess}</div>}
-
-                            <div className={styles.formActions} style={{ marginTop: '24px' }}>
-                                <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
-                                <button type="submit" className="btn-primary">{editingId ? 'Update' : 'Add'}</button>
-                            </div>
+                                <div className={styles.formActions} style={{ marginTop: '24px' }}>
+                                    <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
+                                    <button type="submit" className="btn-primary">{editingId ? 'Update' : 'Add Instrument'}</button>
+                                </div>
                         </form>
                     </div>
                 </div>
             )}
+
+            <AnimatePresence>
+                {(formSuccess || formError) && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 50, scale: 0.9, x: '-50%' }}
+                        animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
+                        exit={{ opacity: 0, y: 20, scale: 0.9, x: '-50%' }}
+                        transition={{ type: "spring", bounce: 0.4, duration: 0.6 }}
+                        className={styles.toast}
+                        style={{
+                            background: formError ? '#f87171' : '#34d399',
+                            color: formError ? '#fff' : '#0A0F1C',
+                        }}
+                    >
+                        {formError || formSuccess}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

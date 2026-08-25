@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { ProfileProvider, useProfile } from '@/components/ProfileContext';
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from './layout.module.css';
 
 const NAV_GROUPS = [
@@ -12,7 +13,6 @@ const NAV_GROUPS = [
             {
                 label: 'Dashboard',
                 path: '/dashboard',
-                kbd: '⌘1',
                 icon: (
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
                         <rect x="1.5" y="1.5" width="6" height="6" rx="1.2" />
@@ -25,7 +25,6 @@ const NAV_GROUPS = [
             {
                 label: 'Holdings',
                 path: '/dashboard/holdings',
-                kbd: '⌘2',
                 icon: (
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
                         <path d="M1.5 12.5V3.5C1.5 2.9 2 2.5 2.5 2.5H13.5C14 2.5 14.5 2.9 14.5 3.5V12.5" strokeLinecap="round" />
@@ -114,16 +113,19 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     const { profile, setProfile } = useProfile();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+    const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
     const [clearModalOpen, setClearModalOpen] = useState(false);
     const [clearProfileInput, setClearProfileInput] = useState('');
     const [clearError, setClearError] = useState('');
 
     const handleLogout = async () => {
+        setAccountDropdownOpen(false);
         await fetch('/api/auth/logout', { method: 'POST' });
         router.push('/auth/login');
     };
 
     const handleClearData = async () => {
+        setAccountDropdownOpen(false);
         setClearProfileInput('');
         setClearError('');
         setClearModalOpen(true);
@@ -222,35 +224,64 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                     ))}
                 </nav>
 
-                <div className={styles.sidebarFoot}>
-                    <div className={styles.account}>
+                <div className={styles.sidebarFoot} style={{ position: 'relative' }}>
+                    <div 
+                        className={styles.account} 
+                        onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
+                        style={{ cursor: 'pointer' }}
+                    >
                         <div className={styles.avatar}>SA</div>
                         <div className={styles.accountInfo}>
                             <span className={styles.accountName}>Sameer</span>
                             <span className={styles.accountEmail}>sameer@portfolio.co</span>
                         </div>
-                        <svg className={styles.chev} width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
+                        <svg className={styles.chev} style={{ transform: accountDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
                             <path d="M4 5.5L7 8.5L10 5.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     </div>
 
-                    <div className={styles.dangerRow}>
-                        <button className={styles.clearData} onClick={handleClearData}>
-                            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3">
-                                <path d="M2.5 3.5H10.5M5 3.5V2.3C5 2 5.3 1.7 5.6 1.7H7.4C7.7 1.7 8 2 8 2.3V3.5M9.5 3.5V10.5C9.5 11 9.1 11.5 8.5 11.5H4.5C3.9 11.5 3.5 11 3.5 10.5V3.5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            Clear all data
-                        </button>
-                    </div>
+                    <AnimatePresence>
+                        {accountDropdownOpen && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                transition={{ duration: 0.15, ease: "easeOut" }}
+                                style={{
+                                    position: 'absolute',
+                                    bottom: '100%',
+                                    left: '12px',
+                                    right: '12px',
+                                    marginBottom: '8px',
+                                    background: 'var(--surface-raised)',
+                                    border: '1px solid var(--hairline)',
+                                    borderRadius: '12px',
+                                    padding: '8px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '8px',
+                                    boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                                    zIndex: 100
+                                }}
+                            >
+                                <button className={styles.clearData} onClick={handleClearData} style={{ margin: 0 }}>
+                                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3">
+                                        <path d="M2.5 3.5H10.5M5 3.5V2.3C5 2 5.3 1.7 5.6 1.7H7.4C7.7 1.7 8 2 8 2.3V3.5M9.5 3.5V10.5C9.5 11 9.1 11.5 8.5 11.5H4.5C3.9 11.5 3.5 11 3.5 10.5V3.5" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                    Clear all data
+                                </button>
 
-                    <button className={styles.logout} onClick={handleLogout}>
-                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4">
-                            <path d="M6 2.5H3C2.4 2.5 2 2.9 2 3.5V11.5C2 12.1 2.4 12.5 3 12.5H6" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M9.5 5L12.5 7.5L9.5 10" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M12.5 7.5H6" strokeLinecap="round" />
-                        </svg>
-                        Logout
-                    </button>
+                                <button className={styles.logout} onClick={handleLogout} style={{ margin: 0 }}>
+                                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4">
+                                        <path d="M6 2.5H3C2.4 2.5 2 2.9 2 3.5V11.5C2 12.1 2.4 12.5 3 12.5H6" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M9.5 5L12.5 7.5L9.5 10" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M12.5 7.5H6" strokeLinecap="round" />
+                                    </svg>
+                                    Logout
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </aside>
 

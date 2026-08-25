@@ -25,6 +25,21 @@
     gap: 20px;
 }
 
+.toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+    pointer-events: none;
+}
+
 .importBtn {
     display: inline-flex;
     align-items: center;

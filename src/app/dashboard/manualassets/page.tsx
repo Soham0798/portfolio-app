@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useProfile } from '@/components/ProfileContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from './manualassets.module.css';
 import layoutStyles from '../layout.module.css';
 
@@ -15,6 +16,7 @@ interface ManualAsset {
     interestRate: number;
     maturityDate: string | null;
     status: string;
+    isMarket?: boolean;
 }
 
 interface SearchResult {
@@ -74,9 +76,23 @@ export default function AssetsPage() {
         setLoading(true);
         try {
             const profileParam = profile === 'combined' ? '' : `?profile=${profile}`;
-            const res = await fetch(`/api/manualassets${profileParam}`);
+            const res = await fetch(`/api/holdings${profileParam}`, { cache: 'no-store' });
             const data = await res.json();
-            setAssets(data.assets || []);
+            
+            const mappedHoldings = (data.holdings || []).map((h: any) => ({
+                _id: h.instrumentId,
+                profile: profile === 'combined' ? 'Combined' : profile,
+                assetType: h.assetType,
+                name: h.name,
+                currentValue: h.currentValue,
+                totalInvested: h.totalInvested,
+                interestRate: 0,
+                maturityDate: null,
+                status: 'ACTIVE',
+                isMarket: true
+            }));
+            
+            setAssets([...mappedHoldings, ...(data.manualAssets || [])]);
         } catch (err) {
             console.error('Failed to fetch assets:', err);
         } finally {
@@ -132,8 +148,9 @@ export default function AssetsPage() {
     };
 
     const resetForm = () => {
+        const defaultProfile = profile === 'combined' ? 'sameer' : profile;
         setForm({
-            profile: 'sameer',
+            profile: defaultProfile,
             assetType: 'STOCK',
             name: '',
             currentValue: '',
@@ -142,7 +159,7 @@ export default function AssetsPage() {
             maturityDate: '',
         });
         setMarketForm({
-            profile: 'sameer',
+            profile: defaultProfile,
             date: new Date().toISOString().split('T')[0],
             quantity: '',
             price: '',
@@ -185,12 +202,13 @@ export default function AssetsPage() {
 
             const data = await res.json();
             if (res.ok) {
-                setFormSuccess(`Added ${selectedInstrument.name} successfully!`);
+                setShowModal(false);
+                resetForm();
+                setFormSuccess(`Added ${selectedInstrument.name} to your Assets!`);
+                fetchAssets();
                 setTimeout(() => {
-                    setShowModal(false);
-                    resetForm();
                     setFormSuccess('');
-                }, 1500);
+                }, 3000);
             } else {
                 setFormError(data.error || 'Failed to add instrument');
             }
@@ -205,6 +223,7 @@ export default function AssetsPage() {
         e.preventDefault();
         setFormError('');
         setFormSuccess('');
+        setSubmitting(true);
         
         try {
             const url = editingId ? `/api/manualassets/${editingId}` : '/api/manualassets';
@@ -223,20 +242,24 @@ export default function AssetsPage() {
             });
 
             if (res.ok) {
+                setShowModal(false);
+                resetForm();
                 setFormSuccess(editingId ? 'Asset updated!' : 'Asset added!');
+                fetchAssets();
                 setTimeout(() => {
-                    setShowModal(false);
-                    resetForm();
-                    fetchAssets();
                     setFormSuccess('');
-                }, 1000);
+                }, 3000);
             } else {
                 const data = await res.json();
                 setFormError(data.error || 'Failed to save asset');
+                setTimeout(() => setFormError(''), 3000);
             }
         } catch (err) {
             console.error('Failed to save asset:', err);
             setFormError('Something went wrong');
+            setTimeout(() => setFormError(''), 3000);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -347,14 +370,20 @@ export default function AssetsPage() {
                                         </div>
                                     )}
                                 </div>
-
                                 <div className={styles.cardActions}>
-                                    <button className="btn-secondary" onClick={() => handleEdit(asset)}>
-                                        Edit
-                                    </button>
-                                    <button className={styles.deleteBtn} onClick={() => handleDelete(asset._id)}>
-                                        Delete
-                                    </button>
+                                    {!asset.isMarket && (
+                                        <>
+                                            <button className="btn-secondary" onClick={() => handleEdit(asset)}>
+                                                Edit
+                                            </button>
+                                            <button className={styles.deleteBtn} onClick={() => handleDelete(asset._id)}>
+                                                Delete
+                                            </button>
+                                        </>
+                                    )}
+                                    {asset.isMarket && (
+                                        <span style={{ fontSize: '11px', color: 'var(--paper-dim)' }}>Managed via Transactions</span>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -468,9 +497,6 @@ export default function AssetsPage() {
                                     <input type="number" className="input" placeholder="0" step="any" value={marketForm.fees} onChange={(e) => setMarketForm({ ...marketForm, fees: e.target.value })} />
                                 </div>
 
-                                {formError && <div style={{ color: '#fca5a5', fontSize: '13px', marginTop: '16px' }}>{formError}</div>}
-                                {formSuccess && <div style={{ color: '#34d399', fontSize: '13px', marginTop: '16px' }}>{formSuccess}</div>}
-
                                 <div className={styles.formActions} style={{ marginTop: '24px' }}>
                                     <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
                                     <button type="submit" className="btn-primary" disabled={submitting}>
@@ -531,9 +557,6 @@ export default function AssetsPage() {
                                     </div>
                                 </div>
 
-                                {formError && <div style={{ color: '#fca5a5', fontSize: '13px', marginTop: '16px' }}>{formError}</div>}
-                                {formSuccess && <div style={{ color: '#34d399', fontSize: '13px', marginTop: '16px' }}>{formSuccess}</div>}
-
                                 <div className={styles.formActions} style={{ marginTop: '24px' }}>
                                     <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
                                     <button type="submit" className="btn-primary">{editingId ? 'Update' : 'Add Asset'}</button>
@@ -543,6 +566,24 @@ export default function AssetsPage() {
                     </div>
                 </div>
             )}
+
+            <AnimatePresence>
+                {(formSuccess || formError) && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 50, scale: 0.9, x: '-50%' }}
+                        animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
+                        exit={{ opacity: 0, y: 20, scale: 0.9, x: '-50%' }}
+                        transition={{ type: "spring", bounce: 0.4, duration: 0.6 }}
+                        className={styles.toast}
+                        style={{
+                            background: formError ? '#f87171' : '#34d399',
+                            color: formError ? '#fff' : '#0A0F1C',
+                        }}
+                    >
+                        {formError || formSuccess}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
