@@ -1,16 +1,11 @@
-import yahooFinance from 'yahoo-finance2';
+import { fetchYahooPrice } from './prices/yahoo';
 
 let amfiNavCache: Record<string, { nav: number; name: string }> | null = null;
 let amfiCacheTime = 0;
 
 export async function getLiveStockPrice(ticker: string): Promise<number | null> {
-    try {
-        const quote = await yahooFinance.quote(ticker) as any;
-        return quote?.regularMarketPrice || null;
-    } catch (err) {
-        console.error(`Failed to fetch stock price for ${ticker}:`, err);
-        return null;
-    }
+    const res = await fetchYahooPrice(ticker);
+    return res?.currentPrice || null;
 }
 
 export async function getLiveMFDetails(isin: string): Promise<{ nav: number; name: string } | null> {
@@ -48,9 +43,9 @@ export async function getLiveMFDetails(isin: string): Promise<{ nav: number; nam
 export async function getLiveGoldPricePerGram(): Promise<number | null> {
     try {
         // Fetch XAUINR=X (Gold in INR per Troy Ounce)
-        const quote = await yahooFinance.quote('XAUINR=X') as any;
-        if (quote && quote.regularMarketPrice) {
-            const pricePerOunce = quote.regularMarketPrice;
+        const quote = await fetchYahooPrice('XAUINR=X');
+        if (quote && quote.currentPrice) {
+            const pricePerOunce = quote.currentPrice;
             const pricePerGram = pricePerOunce / 31.1034768;
             return pricePerGram;
         }

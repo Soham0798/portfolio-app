@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import yahooFinanceDefault from 'yahoo-finance2';
 import { fetchAllMutualFunds } from '@/lib/prices/amfi';
 
-const yahooFinance = new (yahooFinanceDefault as any)();
 
 export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
@@ -19,10 +17,8 @@ export async function GET(req: NextRequest) {
 
     try {
         if (type === 'STOCK') {
-            const searchResults = await yahooFinance.search(query, {
-                quotesCount: 8,
-                newsCount: 0,
-            });
+            const res = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`);
+            const searchResults = await res.json();
 
             const quotes = (searchResults.quotes || [])
                 .filter((q: any) => {

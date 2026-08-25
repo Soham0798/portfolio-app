@@ -1,23 +1,22 @@
-import yahooFinance from 'yahoo-finance2';
-import { PriceResult } from './yahoo';
+import { fetchYahooPrice, PriceResult } from './yahoo';
 
 const TROY_OUNCE_TO_GRAMS = 31.1035;
 
 export async function fetchGoldPriceINR(): Promise<PriceResult | null> {
     try {
         const [goldQuote, usdInrQuote]: any = await Promise.all([
-            yahooFinance.quote('GC=F'),
-            yahooFinance.quote('USDINR=X'),
+            fetchYahooPrice('GC=F'),
+            fetchYahooPrice('USDINR=X'),
         ]);
 
-        if (!goldQuote?.regularMarketPrice || !usdInrQuote?.regularMarketPrice) {
+        if (!goldQuote?.currentPrice || !usdInrQuote?.currentPrice) {
             console.error('Failed to fetch gold or USDINR price');
             return null;
         }
 
-        const goldUSD = goldQuote.regularMarketPrice;
-        const goldPrevUSD = goldQuote.regularMarketPreviousClose || goldUSD;
-        const usdInr = usdInrQuote.regularMarketPrice;
+        const goldUSD = goldQuote.currentPrice;
+        const goldPrevUSD = goldQuote.previousClose || goldUSD;
+        const usdInr = usdInrQuote.currentPrice;
 
         const currentPricePerGram = (goldUSD * usdInr) / TROY_OUNCE_TO_GRAMS;
         const previousPricePerGram = (goldPrevUSD * usdInr) / TROY_OUNCE_TO_GRAMS;

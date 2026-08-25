@@ -1,6 +1,6 @@
 
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });
@@ -8,7 +8,9 @@ dotenv.config({ path: '.env.local' });
 async function seed() {
     await mongoose.connect(process.env.MongoDBUri!);
 
-    const hashedPassword = await bcrypt.hash('hi123', 12);
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.scryptSync('hi123', salt, 64).toString('hex');
+    const hashedPassword = `${salt}:${hash}`;
 
 
     await mongoose.connection.collection('users').updateOne(

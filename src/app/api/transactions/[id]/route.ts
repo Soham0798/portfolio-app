@@ -13,11 +13,21 @@ export async function PUT(
     await dbConnect();
 
     const { id } = await params;
-    const body = await req.json();
+    const { profile, instrumentId, type, date, quantity, price, fees, notes } = await req.json();
+
+    const updateFields: any = {};
+    if (profile !== undefined) updateFields.profile = profile;
+    if (instrumentId !== undefined) updateFields.instrumentId = instrumentId;
+    if (type !== undefined) updateFields.type = type;
+    if (date !== undefined) updateFields.date = new Date(date);
+    if (quantity !== undefined) updateFields.quantity = quantity;
+    if (price !== undefined) updateFields.price = price;
+    if (fees !== undefined) updateFields.fees = fees;
+    if (notes !== undefined) updateFields.notes = notes;
 
     const transaction = await Transaction.findOneAndUpdate(
         { _id: id, userId: user.userId },
-        { $set: body },
+        { $set: updateFields },
         { new: true }
     );
 

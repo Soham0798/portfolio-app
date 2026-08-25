@@ -1,5 +1,4 @@
-import yahooFinanceDefault from 'yahoo-finance2';
-const yahooFinance = new (yahooFinanceDefault as any)();
+
 
 export interface PriceResult {
     currentPrice: number;
@@ -8,16 +7,28 @@ export interface PriceResult {
 
 export async function fetchYahooPrice(ticker: string): Promise<PriceResult | null> {
     try {
-        const quote: any = await yahooFinance.quote(ticker);
+        const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=2d`, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            }
+        });
+        
+        if (!res.ok) {
+            console.warn(`No price data for ${ticker}: ${res.status}`);
+            return null;
+        }
 
-        if (!quote || !quote.regularMarketPrice) {
+        const data = await res.json();
+        const result = data.chart?.result?.[0]?.meta;
+
+        if (!result || !result.regularMarketPrice) {
             console.warn(`No price data for ${ticker}`);
             return null;
         }
 
         return {
-            currentPrice: quote.regularMarketPrice,
-            previousClose: quote.regularMarketPreviousClose || quote.regularMarketPrice,
+            currentPrice: result.regularMarketPrice,
+            previousClose: result.chartPreviousClose || result.regularMarketPrice,
         };
     } catch (error: any) {
         console.error(`Yahoo fetch failed for ${ticker}:`, error.message);
