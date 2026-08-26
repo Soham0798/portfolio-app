@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,520&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,520&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 :root {
   --bg-primary: #05070D;
@@ -8,8 +8,8 @@
   --bg-glass: rgba(255, 255, 255, 0.05);
 
   --text-primary: #f0f0f5;
-  --text-secondary: #8888a0;
-  --text-muted: #555570;
+  --text-secondary: #a1a1aa;
+  --text-muted: #8888a0;
 
   --accent-primary: #60a5fa;
   --accent-secondary: #3b82f6;

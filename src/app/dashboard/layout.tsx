@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ProfileProvider, useProfile } from '@/components/ProfileContext';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -134,14 +135,14 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     const handleClearDataConfirm = async () => {
         const c = clearProfileInput.toLowerCase().trim();
         const validProfiles = ['sameer', 'snehal', 'soham', 'all', 'combined'];
-        
+
         if (!validProfiles.includes(c)) {
             setClearError('Invalid choice. Must be sameer, snehal, soham, or all.');
             return;
         }
 
         const profileToDelete = c;
-        
+
         try {
             const res = await fetch(`/api/settings/clear-data?profile=${profileToDelete}`, { method: 'DELETE' });
             if (res.ok) {
@@ -170,24 +171,24 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                         <p className={styles.modalDesc}>
                             Type <strong>all</strong> to delete data for ALL profiles, or type a specific profile name (<strong>sameer</strong>, <strong>snehal</strong>, <strong>soham</strong>) to delete only that profile's data. This action is permanent.
                         </p>
-                        
-                        <input 
-                            type="text" 
-                            className={styles.modalInput} 
-                            placeholder="Type profile name or 'all'" 
-                            value={clearProfileInput} 
+
+                        <input
+                            type="text"
+                            className={styles.modalInput}
+                            placeholder="Type profile name or 'all'"
+                            value={clearProfileInput}
                             onChange={e => {
                                 setClearProfileInput(e.target.value);
                                 setClearError('');
-                            }} 
+                            }}
                             onKeyDown={e => {
                                 if (e.key === 'Enter') handleClearDataConfirm();
                             }}
                             autoFocus
                         />
-                        
+
                         {clearError && <div style={{ color: '#fca5a5', fontSize: '13px', marginBottom: '16px', marginTop: '-12px' }}>{clearError}</div>}
-                        
+
                         <div className={styles.modalActions}>
                             <button className={styles.modalBtnCancel} onClick={() => setClearModalOpen(false)}>Cancel</button>
                             <button className={styles.modalBtnDanger} onClick={handleClearDataConfirm}>Delete Data</button>
@@ -225,8 +226,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 </nav>
 
                 <div className={styles.sidebarFoot} style={{ position: 'relative' }}>
-                    <div 
-                        className={styles.account} 
+                    <div
+                        className={styles.account}
                         onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
                         style={{ cursor: 'pointer' }}
                     >
@@ -242,7 +243,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
                     <AnimatePresence>
                         {accountDropdownOpen && (
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -264,6 +265,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                                     zIndex: 100
                                 }}
                             >
+                                <Link href="/dashboard/planning" className={styles.menuItem} onClick={() => setAccountDropdownOpen(false)}>
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                    Profile settings
+                                </Link>
+
                                 <button className={styles.clearData} onClick={handleClearData} style={{ margin: 0 }}>
                                     <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3">
                                         <path d="M2.5 3.5H10.5M5 3.5V2.3C5 2 5.3 1.7 5.6 1.7H7.4C7.7 1.7 8 2 8 2.3V3.5M9.5 3.5V10.5C9.5 11 9.1 11.5 8.5 11.5H4.5C3.9 11.5 3.5 11 3.5 10.5V3.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -293,7 +299,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                             <path d="M4 6h14M4 11h14M4 16h14" strokeLinecap="round" />
                         </svg>
                     </button>
-                    
+
                     <div className={styles.profileSwitcher}>
                         <div className={`tab-group hide-on-mobile`}>
                             {(['sameer', 'snehal', 'soham', 'combined'] as const).map((p) => {
@@ -315,7 +321,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                                 );
                             })}
                         </div>
-                        
+
                         <div className="hide-on-desktop">
                             <div className="tab-group" style={{ position: 'relative', display: 'flex' }}>
                                 <button
@@ -324,16 +330,16 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                                 >
                                     <span className="pdot" style={
                                         profile === 'sameer' ? { background: '#5b8fe0' } :
-                                        profile === 'snehal' ? { background: '#9b82e3' } :
-                                        profile === 'soham' ? { background: '#4fb797' } :
-                                        { background: 'linear-gradient(90deg, #5b8fe0, #9b82e3, #4fb797)' }
+                                            profile === 'snehal' ? { background: '#9b82e3' } :
+                                                profile === 'soham' ? { background: '#4fb797' } :
+                                                    { background: 'linear-gradient(90deg, #5b8fe0, #9b82e3, #4fb797)' }
                                     }></span>
                                     {profile.charAt(0).toUpperCase() + profile.slice(1)}
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '4px' }}>
-                                        <path d="m6 9 6 6 6-6"/>
+                                        <path d="m6 9 6 6 6-6" />
                                     </svg>
                                 </button>
-                                
+
                                 {profileDropdownOpen && (
                                     <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '2px', background: '#0d1926', padding: '4px', borderRadius: '10px', border: '1px solid rgba(233,231,224,0.12)', zIndex: 100, minWidth: '130px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
                                         {(['sameer', 'snehal', 'soham', 'combined'] as const).filter(p => p !== profile).map((p) => {

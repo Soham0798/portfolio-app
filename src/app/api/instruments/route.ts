@@ -13,8 +13,7 @@ export async function GET(req: NextRequest) {
     const assetType = searchParams.get('type');
     const activeOnly = searchParams.get('active');
 
-
-    const query: any = {};
+    const query: any = { userId: user.userId };
     if (assetType) query.assetType = assetType;
     if (activeOnly !== 'false') query.isActive = true;
 
@@ -32,6 +31,7 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         const instrument = await Instrument.create({
+            userId: user.userId,
             tickerSymbol: body.tickerSymbol,
             name: body.name,
             assetType: body.assetType,

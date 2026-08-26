@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useProfile } from '@/components/ProfileContext';
 import styles from './dashboard.module.css';
+import Link from 'next/link';
+import NumberInput from '@/components/NumberInput';
 
 interface Holding {
     instrumentId: string;
@@ -18,51 +20,106 @@ interface Holding {
     totalInvested: number;
 }
 
-interface ManualAsset {
-    _id: string;
+interface Liability {
     name: string;
-    assetType: string;
-    currentValue: number;
-    totalInvested: number;
-    profile: string;
+    type: string;
+    outstanding: number;
+    emi: number;
+    interestRate: number;
+}
+
+interface Goal {
+    name: string;
+    target: number;
+    current: number;
+    timelineYears: number;
+}
+
+interface Insight {
+    id: string;
+    type: 'Urgent' | 'Opportunity' | 'Rebalance';
+    message: string;
+    actionLabel: string;
+    actionHref: string;
+}
+
+interface HealthScore {
+    total: number;
+    subScores: Record<string, { score: number; weight: number; message: string }>;
 }
 
 interface Summary {
     totalValue: number;
     totalInvested: number;
     totalGain: number;
-    totalGainPercent: number;
     totalDayGain: number;
-    totalDayGainPercent: number;
-    marketValue: number;
-    manualValue: number;
+    netWorth: number;
+    isProfileConfigured: boolean;
+    userProfile?: {
+        age: number;
+    };
 }
 
 export default function DashboardPage() {
     const { profile } = useProfile();
     const [holdings, setHoldings] = useState<Holding[]>([]);
-    const [manualAssets, setManualAssets] = useState<ManualAsset[]>([]);
+    const [liabilities, setLiabilities] = useState<Liability[]>([]);
+    const [goals, setGoals] = useState<Goal[]>([]);
+    const [insights, setInsights] = useState<Insight[]>([]);
+    const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
     const [summary, setSummary] = useState<Summary | null>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        async function fetchData() {
-            setLoading(true);
-            try {
-                const profileParam = profile === 'combined' ? '' : `?profile=${profile}`;
-                const res = await fetch(`/api/holdings${profileParam}`);
-                const data = await res.json();
-                setHoldings(data.holdings || []);
-                setManualAssets(data.manualAssets || []);
-                setSummary(data.summary || null);
-            } catch (error) {
-                console.error('Failed to fetch holdings:', error);
-            } finally {
-                setLoading(false);
+    const [showBreakdown, setShowBreakdown] = useState(false);
+    const [showAgePrompt, setShowAgePrompt] = useState(false);
+    const [isSubmittingAge, setIsSubmittingAge] = useState(false);
+    const [promptAge, setPromptAge] = useState('');
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const profileParam = profile === 'combined' ? '' : `?profile=${profile}`;
+            const res = await fetch(`/api/holdings${profileParam}`);
+            const data = await res.json();
+            
+            setHoldings(data.holdings || []);
+            setLiabilities(data.liabilities || []);
+            setGoals(data.goals || []);
+            setInsights(data.insights || []);
+            setHealthScore(data.healthScore || null);
+            setSummary(data.summary || null);
+
+            if (data.summary && !data.summary.isProfileConfigured && profile !== 'combined') {
+                setShowAgePrompt(true);
             }
+        } catch (error) {
+            console.error('Failed to fetch dashboard data:', error);
+        } finally {
+            setLoading(false);
         }
+    };
+
+    useEffect(() => {
         fetchData();
     }, [profile]);
+
+    const handleSaveAge = async () => {
+        if (!promptAge) return;
+        setIsSubmittingAge(true);
+        try {
+            await fetch('/api/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ age: Number(promptAge), profile: profile === 'combined' ? 'default' : profile })
+            });
+            setShowAgePrompt(false);
+            fetchData();
+        } catch (e) {
+            console.error('Failed to save age', e);
+        } finally {
+            setIsSubmittingAge(false);
+        }
+    };
 
     const formatCurrency = (n: number) => {
         return new Intl.NumberFormat('en-IN', {
@@ -70,441 +127,340 @@ export default function DashboardPage() {
         }).format(n);
     };
 
-    const formatPercent = (n: number) => {
-        return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
+    if (loading) {
+        return <div className={styles.loading}>Loading Portfolio...</div>;
+    }
+
+    const netWorth = summary?.netWorth || 0;
+    const totalAssets = summary?.totalValue || 0;
+    const totalLiabilities = liabilities.reduce((acc, l) => acc + (l.outstanding || 0), 0);
+    const debtToAsset = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
+    
+    // Liquid roughly 30 days
+    const liquidTypes = ['EQUITY', 'MUTUAL_FUND', 'CASH', 'FD', 'ETF', 'GOLD'];
+    const liquidAssets = holdings
+        .filter(h => liquidTypes.includes(h.assetType))
+        .reduce((acc, h) => acc + h.currentValue, 0);
+
+    // Group assets for donut
+    const assetBuckets: Record<string, number> = {
+        'Direct equity': 0,
+        'Mutual funds': 0,
+        'Fixed deposits': 0,
+        'EPF / PPF': 0,
+        'Gold': 0,
+        'Cash': 0,
+        'Other': 0
     };
 
-    const assetBuckets = { Equity: 0, Commodities: 0, Debt: 0, Other: 0 };
     holdings.forEach(h => {
-        const name = h.name.toLowerCase();
-        const type = h.assetType.toUpperCase();
-        if (type === 'SGB' || type === 'GOLD' || name.includes('gold') || name.includes('silver')) {
-            assetBuckets.Commodities += h.currentValue;
-        } else if (type === 'BOND' || type === 'NPS' || name.includes('liquid') || name.includes('debt')) {
-            assetBuckets.Debt += h.currentValue;
-        } else if (type === 'STOCK' || type === 'MUTUAL_FUND' || type === 'ETF') {
-            assetBuckets.Equity += h.currentValue;
-        } else {
-            assetBuckets.Other += h.currentValue;
-        }
-    });
-    manualAssets.forEach(a => {
-        const type = a.assetType.toUpperCase();
-        if (type === 'FD' || type === 'RD' || type === 'EPF' || type === 'PPF' || type === 'CASH') {
-            assetBuckets.Debt += a.currentValue;
-        } else if (type === 'GOLD' || type === 'SGB') {
-            assetBuckets.Commodities += a.currentValue;
-        } else {
-            assetBuckets.Other += a.currentValue;
-        }
+        if (h.assetType === 'EQUITY' || h.assetType === 'STOCK') assetBuckets['Direct equity'] += h.currentValue;
+        else if (h.assetType === 'MUTUAL_FUND') assetBuckets['Mutual funds'] += h.currentValue;
+        else if (h.assetType === 'FD') assetBuckets['Fixed deposits'] += h.currentValue;
+        else if (h.assetType === 'EPF' || h.assetType === 'PPF') assetBuckets['EPF / PPF'] += h.currentValue;
+        else if (h.assetType === 'GOLD' || h.assetType === 'SGB') assetBuckets['Gold'] += h.currentValue;
+        else if (h.assetType === 'CASH') assetBuckets['Cash'] += h.currentValue;
+        else assetBuckets['Other'] += h.currentValue;
     });
 
-    const bucketArray = Object.entries(assetBuckets)
-        .filter(([_, val]) => val > 0)
-        .sort((a, b) => b[1] - a[1]);
+    const bucketArray = Object.entries(assetBuckets).filter(([_, val]) => val > 0).sort((a, b) => b[1] - a[1]);
+    const allocColors = ['#60a5fa', '#34d399', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6', '#64748b'];
 
-    if (loading) {
-        return <div className={styles.loading}>Loading portfolio...</div>;
+    let conicGradient = '';
+    let currentDegree = 0;
+    bucketArray.forEach(([name, val], index) => {
+        const pct = val / totalAssets;
+        const degrees = pct * 360;
+        const color = allocColors[index % allocColors.length];
+        conicGradient += `${color} ${currentDegree}deg ${currentDegree + degrees}deg, `;
+        currentDegree += degrees;
+    });
+    conicGradient = conicGradient.slice(0, -2); // remove last comma
+
+    // Calculate dynamic age risk score based on actual age
+    const currentAge = summary?.userProfile?.age || 30;
+    const equityVal = assetBuckets['Direct equity'] + assetBuckets['Mutual funds'];
+    const actualEquityPct = totalAssets > 0 ? (equityVal / totalAssets) * 100 : 0;
+    const expected = 110 - currentAge;
+    const low = expected - 10, high = expected + 10;
+    
+    let ageRiskScore = 0;
+    if (actualEquityPct >= low && actualEquityPct <= high) ageRiskScore = 100;
+    else if (actualEquityPct < low) ageRiskScore = 100 - (low - actualEquityPct) * 3.5;
+    else ageRiskScore = 100 - (actualEquityPct - high) * 3.5;
+    ageRiskScore = Math.max(0, Math.min(100, Math.round(ageRiskScore)));
+
+    // Recalculate total score
+    let overallScore = 0;
+    if (healthScore) {
+        Object.entries(healthScore.subScores).forEach(([key, val]) => {
+            if (key === 'ageRisk') {
+                overallScore += ageRiskScore * val.weight;
+            } else {
+                overallScore += val.score * val.weight;
+            }
+        });
     }
 
     return (
         <div className={styles.page}>
-            {/* --- UNIFIED STATEMENT VIEW --- */}
-            {summary && (
-                <div className={styles.statementDevice}>
-                    <div className={styles.statement}>
-                        <div className={styles.eyebrow}>Portfolio Statement · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                        <div className={styles.valueRow}>
-                            <span className={styles.rupee}>₹</span>
-                            <span className={styles.totalValue}>{formatCurrency(summary.totalValue)}</span>
-                        </div>
+            <div className={styles.app}>
+                <div className={styles.topline}>
+                    <div className={styles.wordmark}>Portf<span>o</span>lio</div>
+                    <div className={styles.synced}><span className={styles.pulse}></span> Last synced 2 min ago</div>
+                </div>
 
-                        <div className={styles.movementRow}>
-                            <div className={`${styles.movement} ${summary.totalDayGain >= 0 ? styles.up : styles.down}`}>
-                                <span className={styles.tri}>{summary.totalDayGain >= 0 ? '▲' : '▼'}</span>
-                                {formatCurrency(Math.abs(summary.totalDayGain))}
-                                <span className={styles.label}>today</span>
-                            </div>
-
-                            <div className={styles.seal}>
-                                <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="#C9A24A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                            </div>
+                {/* HERO */}
+                <div className={styles.hero}>
+                    <div>
+                        <div className={styles.heroEyebrow}>Net worth · as of today</div>
+                        <div className={styles.heroNumber}>₹{formatCurrency(netWorth)}</div>
+                        <div className={`${styles.heroDelta} ${(summary?.totalGain || 0) < 0 ? styles.neg : ''}`}>
+                            {(summary?.totalGain || 0) >= 0 ? '▲' : '▼'} ₹{formatCurrency(Math.abs(summary?.totalGain || 0))} this month
                         </div>
+                        <div className={styles.heroSpark}>
+                            <svg width="100%" height="70" viewBox="0 0 600 160" preserveAspectRatio="none" style={{ maxWidth: '420px' }}>
+                                <polyline points="0,150 54.5,135.8 109,116.9 163.6,126.4 218.2,102.8 272.7,83.9 327.3,93.3 381.8,69.7 436.4,50.8 490.9,41.3 545.5,46.1 600,30"
+                                    fill="none" stroke="#60a5fa" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                <circle cx="600" cy="30" r="5" fill="#60a5fa"/>
+                            </svg>
+                        </div>
+                        <div className={styles.heroCaption}>12-month trend · assets minus liabilities, updated nightly</div>
                     </div>
-
-                    <div className={styles.statLedger}>
-                        <div className={styles.stat}>
-                            <div className={styles.statLabel}>Invested</div>
-                            <div className={styles.statFigure}>{formatCurrency(summary.totalInvested)}</div>
-                        </div>
-                        <div className={styles.stat}>
-                            <div className={styles.statLabel}>Total Gain</div>
-                            <div className={`${styles.statFigure} ${summary.totalGain >= 0 ? styles.gain : styles.loss}`}>
-                                {summary.totalGain >= 0 ? '+' : '-'}{formatCurrency(Math.abs(summary.totalGain))}
+                    
+                    <div className={styles.heroBadge}>
+                        <div className={styles.stamp}>
+                            <div className={styles.score}>{Math.round(overallScore)}</div>
+                            <div className={styles.of}>/ 100</div>
+                            <div className={styles.label}>
+                                {overallScore >= 80 ? 'Excellent' : overallScore >= 60 ? 'Steady' : 'Needs Work'}
                             </div>
-                            <div className={styles.statSub}>{formatPercent(summary.totalGainPercent)}</div>
                         </div>
-                        <div className={styles.stat}>
-                            <div className={styles.statLabel}>Current</div>
-                            <div className={styles.statFigure}>{formatCurrency(summary.totalValue)}</div>
-                        </div>
+                        <div className={styles.badgeCaption}>Portfolio health score — 8 factors combined</div>
+                        {profile !== 'combined' && (
+                            <div className={styles.ageControl}>
+                                Age
+                                <span className={styles.staticAge}>{currentAge}</span>
+                                <span>yrs</span>
+                                <Link href="/dashboard/planning" className={styles.editAgeLink}>Edit</Link>
+                            </div>
+                        )}
+                        <button className={styles.breakdownLink} onClick={() => setShowBreakdown(!showBreakdown)}>
+                            {showBreakdown ? 'Hide breakdown' : 'View breakdown'}
+                        </button>
                     </div>
+                </div>
 
-                    {holdings.length > 0 && (
-                        <>
-                            <div className={styles.allocation}>
-                                <div className={styles.ringWrap}>
-                                    <svg width="64" height="64" viewBox="0 0 64 64">
-                                        <circle cx="32" cy="32" r="26" fill="none" stroke="#1B2740" strokeWidth="8" />
-
-                                        {(() => {
-                                            const sorted = [...holdings].sort((a, b) => b.currentValue - a.currentValue);
-                                            const top3 = sorted.slice(0, 3);
-                                            const ringColors = ['#60A5FA', '#A78BFA', '#34D399'];
-                                            const totalLen = 163.36;
-                                            let offset = totalLen;
-
-                                            return top3.map((h, i) => {
-                                                const pct = h.currentValue / summary.totalValue;
-                                                const dash = pct * totalLen;
-                                                const thisOffset = offset;
-                                                offset -= dash;
-                                                return (
-                                                    <circle
-                                                        key={h.instrumentId}
-                                                        cx="32" cy="32" r="26" fill="none"
-                                                        stroke={ringColors[i]} strokeWidth="8"
-                                                        strokeDasharray={`${dash} ${totalLen - dash}`}
-                                                        strokeDashoffset={thisOffset - totalLen}
-                                                        strokeLinecap="round"
-                                                    />
-                                                );
-                                            });
-                                        })()}
-                                    </svg>
-                                    <div className={styles.ringCenter}>{holdings.length} funds</div>
-                                </div>
-                                <div className={styles.allocLegend}>
-                                    {(() => {
-                                        const sorted = [...holdings].sort((a, b) => b.currentValue - a.currentValue);
-                                        const top3 = sorted.slice(0, 3);
-                                        const ringColors = ['#60A5FA', '#A78BFA', '#34D399'];
-
-                                        return top3.map((h, i) => (
-                                            <div className={styles.allocItem} key={h.instrumentId}>
-                                                <span className={styles.allocDot} style={{ background: ringColors[i] }}></span>
-                                                <span className={styles.allocName}>{h.name}</span>
-                                                <span className={styles.allocPct}>{((h.currentValue / summary.totalValue) * 100).toFixed(0)}%</span>
-                                            </div>
-                                        ));
-                                    })()}
-                                </div>
-                            </div>
-
-                            {bucketArray.length > 0 && (
-                                <div className={styles.allocation}>
-                                    <div className={styles.ringWrap}>
-                                        <svg width="64" height="64" viewBox="0 0 64 64">
-                                            <circle cx="32" cy="32" r="26" fill="none" stroke="#1B2740" strokeWidth="8" />
-
-                                            {(() => {
-                                                const ringColors = ['#60A5FA', '#A78BFA', '#34D399', '#FBBF24'];
-                                                const totalLen = 163.36;
-                                                let offset = totalLen;
-
-                                                return bucketArray.map(([name, val], i) => {
-                                                    const pct = val / summary.totalValue;
-                                                    const dash = pct * totalLen;
-                                                    const thisOffset = offset;
-                                                    offset -= dash;
-                                                    return (
-                                                        <circle
-                                                            key={name}
-                                                            cx="32" cy="32" r="26" fill="none"
-                                                            stroke={ringColors[i % ringColors.length]} strokeWidth="8"
-                                                            strokeDasharray={`${dash} ${totalLen - dash}`}
-                                                            strokeDashoffset={thisOffset - totalLen}
-                                                            strokeLinecap="round"
-                                                        />
-                                                    );
-                                                });
-                                            })()}
-                                        </svg>
-                                        <div className={styles.ringCenter}>Assets</div>
+                {/* SCORE BREAKDOWN */}
+                <div className={`${styles.breakdownPanel} ${showBreakdown ? styles.open : ''}`}>
+                    <div className={styles.sectionHead} style={{ marginBottom: '14px' }}>
+                        <div className={styles.sectionTitle} style={{ fontSize: '17px' }}>How {Math.round(overallScore)} is calculated</div>
+                        <div className={styles.sectionSub}>Weighted average of 8 factors</div>
+                    </div>
+                    <div>
+                        {healthScore && Object.entries(healthScore.subScores).map(([key, val]) => {
+                            const isAgeRow = key === 'ageRisk';
+                            const scoreToUse = isAgeRow ? ageRiskScore : val.score;
+                            return (
+                                <div className={styles.breakdownRow} key={key}>
+                                    <div className={`${styles.bdName} ${isAgeRow ? styles.highlight : ''}`}>
+                                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
                                     </div>
-                                    <div className={styles.allocLegend}>
-                                        {(() => {
-                                            const ringColors = ['#60A5FA', '#A78BFA', '#34D399', '#FBBF24'];
-
-                                            return bucketArray.map(([name, val], i) => (
-                                                <div className={styles.allocItem} key={name}>
-                                                    <span className={styles.allocDot} style={{ background: ringColors[i % ringColors.length] }}></span>
-                                                    <span className={styles.allocName}>{name}</span>
-                                                    <span className={styles.allocPct}>{((val / summary.totalValue) * 100).toFixed(0)}%</span>
-                                                </div>
-                                            ));
-                                        })()}
+                                    <div className={styles.breakdownTrack}>
+                                        <div className={`${styles.breakdownFill} ${isAgeRow ? styles.highlight : ''}`} style={{ width: `${scoreToUse}%` }}></div>
                                     </div>
+                                    <div className={styles.bdScore}>{Math.round(scoreToUse)}</div>
+                                    <div className={styles.bdWeight}>{Math.round(val.weight * 100)}%</div>
                                 </div>
-                            )}
-                        </>
-                    )}
+                            );
+                        })}
+                    </div>
+                    <div className={styles.breakdownTotal}>
+                        <div><span className={styles.btLabel}>Overall score</span></div>
+                        <div className={styles.btValue}>{Math.round(overallScore)} / 100</div>
+                    </div>
+                </div>
 
-                    <div className={styles.holdingsHead}>
-                        <div className={styles.holdingsTitle}>Holdings</div>
+                {/* QUICK STATS */}
+                <div className={styles.quickstats}>
+                    <div className={styles.qsCell}>
+                        <div className={styles.qsLabel}>Total assets</div>
+                        <div className={styles.qsValue}>₹{formatCurrency(totalAssets)}</div>
+                    </div>
+                    <div className={styles.qsCell}>
+                        <div className={styles.qsLabel}>Total liabilities</div>
+                        <div className={styles.qsValue}>₹{formatCurrency(totalLiabilities)}</div>
+                    </div>
+                    <div className={styles.qsCell}>
+                        <div className={styles.qsLabel}>Debt-to-asset</div>
+                        <div className={styles.qsValue}>{debtToAsset.toFixed(1)}%</div>
+                    </div>
+                    <div className={styles.qsCell}>
+                        <div className={styles.qsLabel}>Liquid within 30 days</div>
+                        <div className={`${styles.qsValue} ${styles.up}`}>₹{formatCurrency(liquidAssets)}</div>
+                    </div>
+                </div>
+
+                {/* ACTIONABLE INSIGHTS */}
+                <div className={styles.section}>
+                    <div className={styles.sectionHead}>
+                        <div className={styles.sectionTitle}>Today's entries</div>
+                        <div className={styles.sectionSub}>{insights.length} need attention</div>
                     </div>
 
-                    {[...holdings].sort((a, b) => b.currentValue - a.currentValue).map((h, i) => {
-                        const bgColors = ['#C9A24A', '#6FA97F', '#C1663F', '#5b8fe0', '#9b82e3'];
-                        const bg = bgColors[i % bgColors.length];
-                        const initials = h.name.substring(0, 2).toUpperCase();
+                    {insights.map((insight, idx) => {
+                        let tagClass = styles.tagOpportunity;
+                        if (insight.type === 'Urgent') tagClass = styles.tagUrgent;
+                        if (insight.type === 'Rebalance') tagClass = styles.tagRebalance;
 
                         return (
-                            <div className={styles.holding} key={h.instrumentId}>
-                                <div className={styles.holdingBadge} style={{ background: bg }}>{initials}</div>
-                                <div className={styles.holdingMain}>
-                                    <div className={styles.holdingTop}>
-                                        <div>
-                                            <div className={styles.holdingName}>{h.name}</div>
-                                            <div className={styles.holdingFolio}>{h.tickerSymbol || h.assetType}</div>
-                                        </div>
-                                        <div className={styles.holdingValue}>
-                                            <div className={styles.holdingCmp}>{formatCurrency(h.currentValue)}</div>
-                                            <div className={`${styles.holdingGain} ${h.totalGain >= 0 ? styles.up : styles.down}`}>
-                                                {h.totalGain >= 0 ? '▲' : '▼'} {formatPercent(h.totalInvested > 0 ? (Math.abs(h.totalGain) / h.totalInvested) * 100 : 0)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className={styles.holdingDetail}>
-                                        <div className={styles.detailItem}>
-                                            <div className={styles.detailLabel}>Qty</div>
-                                            <div className={styles.detailFigure}>{h.currentQty.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
-                                        </div>
-                                        <div className={styles.detailItem}>
-                                            <div className={styles.detailLabel}>Avg</div>
-                                            <div className={styles.detailFigure}>{formatCurrency(h.avgBuyPrice)}</div>
-                                        </div>
-                                        <div className={styles.detailItem}>
-                                            <div className={styles.detailLabel}>CMP</div>
-                                            <div className={styles.detailFigure}>{formatCurrency(h.currentPrice)}</div>
-                                        </div>
-                                        <svg className={styles.spark} width="46" height="18" viewBox="0 0 46 18">
-                                            {h.totalGain >= 0 ? (
-                                                <polyline points="0,14 8,12 16,13 24,8 32,9 40,3 46,4" fill="none" stroke="#6FA97F" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                                            ) : (
-                                                <polyline points="0,4 8,7 16,6 24,10 32,9 40,14 46,13" fill="none" stroke="#C1663F" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                                            )}
-                                        </svg>
-                                    </div>
+                            <div className={styles.insightRow} key={idx}>
+                                <div className={`${styles.insightTag} ${tagClass}`}></div>
+                                <div>
+                                    <div className={styles.insightKicker}>{insight.type}</div>
+                                    <div className={styles.insightText} dangerouslySetInnerHTML={{ __html: insight.message }}></div>
                                 </div>
+                                <a href={insight.actionHref} className={styles.insightCta}>{insight.actionLabel}</a>
                             </div>
                         );
                     })}
-
-                    <div className={styles.footerNote}>Values are illustrative · NAV as of previous close</div>
                 </div>
-            )}
 
-            {/* --- DESKTOP VIEW --- */}
-            {summary && (
-                <div className={styles.desktopView}>
-                    <div className={styles.gridTop}>
-                        {/* Desktop Hero */}
-                        <div className={styles.hero}>
-                            <div className={styles.desktopEyebrow}>Portfolio Statement · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                            <div className={styles.desktopValueRow}>
-                                <span className={styles.desktopRupee}>₹</span>
-                                <span className={styles.desktopTotalValue}>{formatCurrency(summary.totalValue)}</span>
-                            </div>
-                            <div className={styles.desktopMovementRow}>
-                                <div className={`${styles.desktopMovement} ${summary.totalDayGain >= 0 ? styles.up : styles.down}`}>
-                                    {summary.totalDayGain >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(summary.totalDayGain))} <span className={styles.desktopMovementLabel}>today</span>
-                                </div>
-                                <div className={styles.desktopSeal}>
-                                    <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                {/* ALLOCATION + LIABILITIES */}
+                <div className={styles.gridMain}>
+                    <div className={styles.section}>
+                        <div className={styles.sectionHead}>
+                            <div className={styles.sectionTitle}>What you own</div>
+                            <div className={styles.sectionSub}>{bucketArray.length} asset classes</div>
+                        </div>
+                        <div className={styles.donutWrap}>
+                            <div className={styles.donut} style={{ background: conicGradient ? `conic-gradient(${conicGradient})` : 'var(--bg-secondary)' }}>
+                                <div className={styles.donutCenter}>
+                                    <div className={styles.amt}>₹{formatCurrency(totalAssets)}</div>
+                                    <div className={styles.lbl}>Assets</div>
                                 </div>
                             </div>
-                            <div className={styles.desktopStatLedger}>
-                                <div className={styles.desktopStat}>
-                                    <div className={styles.desktopStatLabel}>Invested</div>
-                                    <div className={styles.desktopStatFigure}>{formatCurrency(summary.totalInvested)}</div>
-                                </div>
-                                <div className={styles.desktopStat}>
-                                    <div className={styles.desktopStatLabel}>Total Gain</div>
-                                    <div className={`${styles.desktopStatFigure} ${summary.totalGain >= 0 ? styles.gain : styles.loss}`}>
-                                        {summary.totalGain >= 0 ? '+' : '-'}{formatCurrency(Math.abs(summary.totalGain))}
-                                    </div>
-                                    <div className={`${styles.desktopStatSub} ${summary.totalGain >= 0 ? '' : styles.loss}`}>
-                                        {formatPercent(summary.totalGainPercent)}
-                                    </div>
-                                </div>
-                                <div className={styles.desktopStat}>
-                                    <div className={styles.desktopStatLabel}>Current</div>
-                                    <div className={styles.desktopStatFigure}>{formatCurrency(summary.totalValue)}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Desktop Panels */}
-                        <div className={styles.panelStack}>
-                            {holdings.length > 0 && (
-                                <div className={styles.panel}>
-                                    <div className={styles.desktopRingWrap}>
-                                        <svg width="74" height="74" viewBox="0 0 74 74">
-                                            <circle cx="37" cy="37" r="30" fill="none" stroke="#1B2740" strokeWidth="9" />
-                                            {(() => {
-                                                const sorted = [...holdings].sort((a, b) => b.currentValue - a.currentValue);
-                                                const top3 = sorted.slice(0, 3);
-                                                const ringColors = ['#5B8DEF', '#8C97E8', '#4FB08C'];
-                                                const totalLen = 188.4;
-                                                let offset = totalLen;
-
-                                                return top3.map((h, i) => {
-                                                    const pct = h.currentValue / summary.totalValue;
-                                                    const dash = pct * totalLen;
-                                                    const thisOffset = offset;
-                                                    offset -= dash;
-                                                    return (
-                                                        <circle
-                                                            key={h.instrumentId}
-                                                            cx="37" cy="37" r="30" fill="none"
-                                                            stroke={ringColors[i]} strokeWidth="9"
-                                                            strokeDasharray={`${dash} ${totalLen - dash}`}
-                                                            strokeDashoffset={thisOffset - totalLen}
-                                                            strokeLinecap="round"
-                                                        />
-                                                    );
-                                                });
-                                            })()}
-                                        </svg>
-                                        <div className={styles.desktopRingCenter}>{holdings.length} funds</div>
-                                    </div>
-                                    <div className={styles.desktopAllocLegend}>
-                                        <div className={styles.panelTitle}>Fund Mix</div>
-                                        {(() => {
-                                            const sorted = [...holdings].sort((a, b) => b.currentValue - a.currentValue);
-                                            const top3 = sorted.slice(0, 3);
-                                            const ringColors = ['#5B8DEF', '#8C97E8', '#4FB08C'];
-
-                                            return top3.map((h, i) => (
-                                                <div className={styles.desktopAllocItem} key={h.instrumentId}>
-                                                    <span className={styles.desktopAllocDot} style={{ background: ringColors[i] }}></span>
-                                                    <span className={styles.desktopAllocName}>{h.name}</span>
-                                                    <span className={styles.desktopAllocPct}>{((h.currentValue / summary.totalValue) * 100).toFixed(0)}%</span>
-                                                </div>
-                                            ));
-                                        })()}
-                                    </div>
-                                </div>
-                            )}
-
-                            {bucketArray.length > 0 && (
-                                <div className={styles.panel}>
-                                    <div className={styles.desktopRingWrap}>
-                                        <svg width="74" height="74" viewBox="0 0 74 74">
-                                            <circle cx="37" cy="37" r="30" fill="none" stroke="#1B2740" strokeWidth="9" />
-                                            {(() => {
-                                                const ringColors = ['#5B8DEF', '#253355', '#4FB08C', '#C9A24A'];
-                                                const totalLen = 188.4;
-                                                let offset = totalLen;
-
-                                                return bucketArray.map(([name, val], i) => {
-                                                    const pct = val / summary.totalValue;
-                                                    const dash = pct * totalLen;
-                                                    const thisOffset = offset;
-                                                    offset -= dash;
-                                                    return (
-                                                        <circle
-                                                            key={name}
-                                                            cx="37" cy="37" r="30" fill="none"
-                                                            stroke={ringColors[i % ringColors.length]} strokeWidth="9"
-                                                            strokeDasharray={`${dash} ${totalLen - dash}`}
-                                                            strokeDashoffset={thisOffset - totalLen}
-                                                            strokeLinecap="round"
-                                                        />
-                                                    );
-                                                });
-                                            })()}
-                                        </svg>
-                                        <div className={styles.desktopRingCenter}>Assets</div>
-                                    </div>
-                                    <div className={styles.desktopAllocLegend}>
-                                        <div className={styles.panelTitle}>Asset Mix</div>
-                                        {(() => {
-                                            const ringColors = ['#5B8DEF', '#253355', '#4FB08C', '#C9A24A'];
-                                            return bucketArray.map(([name, val], i) => (
-                                                <div className={styles.desktopAllocItem} key={name}>
-                                                    <span className={styles.desktopAllocDot} style={{ background: ringColors[i % ringColors.length] }}></span>
-                                                    <span className={styles.desktopAllocName}>{name}</span>
-                                                    <span className={styles.desktopAllocPct}>{((val / summary.totalValue) * 100).toFixed(0)}%</span>
-                                                </div>
-                                            ));
-                                        })()}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className={styles.holdingsCard}>
-                        <div className={styles.holdingsHead}>
-                            <div className={styles.holdingsTitle}>Holdings</div>
-                        </div>
-                        <table className={styles.table}>
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Qty</th>
-                                    <th>Avg</th>
-                                    <th>CMP</th>
-                                    <th>Value</th>
-                                    <th>Gain</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {[...holdings].sort((a, b) => b.currentValue - a.currentValue).map((h, i) => {
-                                    const bColor = ['#C9A24A', '#5B8DEF', '#8C97E8', '#4FB08C', '#D8735F'][i % 5];
-                                    const badgeText = h.name.substring(0, 2).toUpperCase();
-                                    const returns = h.currentValue - h.totalInvested;
-                                    const returnsPct = h.totalInvested > 0 ? (returns / h.totalInvested) * 100 : 0;
-
+                            <div className={styles.legend}>
+                                {bucketArray.map(([name, val], index) => {
+                                    const color = allocColors[index % allocColors.length];
+                                    const pct = totalAssets > 0 ? (val / totalAssets) * 100 : 0;
                                     return (
-                                        <tr key={h.instrumentId}>
-                                            <td>
-                                                <div className={styles.nameCell}>
-                                                    <div className={styles.badge} style={{ background: bColor }}>{badgeText}</div>
-                                                    <div>
-                                                        <div className={styles.fundName}>{h.name}</div>
-                                                        <div className={styles.fundSub}>{h.tickerSymbol || h.assetType}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>{h.currentQty.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
-                                            <td>{formatCurrency(h.avgBuyPrice)}</td>
-                                            <td>{formatCurrency(h.currentPrice)}</td>
-                                            <td className={styles.valueCell}>{formatCurrency(h.currentValue)}</td>
-                                            <td className={`${styles.gainCell} ${returns >= 0 ? styles.up : styles.down}`}>
-                                                {returns >= 0 ? '▲' : '▼'} {Math.abs(returnsPct).toFixed(2)}%
-                                            </td>
-                                            <td className={styles.sparkCell}>
-                                                <svg width="52" height="20" viewBox="0 0 52 20">
-                                                    <polyline
-                                                        points={returns >= 0 ? "0,17 9,14 18,15 27,8 36,9 45,2 52,4" : "0,4 9,7 18,6 27,10 36,9 45,14 52,13"}
-                                                        fill="none"
-                                                        stroke={returns >= 0 ? "#34D399" : "#F87171"}
-                                                        strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
-                                                    />
-                                                </svg>
-                                            </td>
-                                        </tr>
+                                        <div className={styles.legendRow} key={name}>
+                                            <span className={styles.sw} style={{ background: color }}></span>
+                                            <span className={styles.name}>{name}</span>
+                                            <span className={styles.pct}>{Math.round(pct)}%</span>
+                                            <span className={styles.val}>₹{formatCurrency(val)}</span>
+                                        </div>
                                     );
                                 })}
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={styles.section}>
+                        <div className={styles.sectionHead}>
+                            <div className={styles.sectionTitle}>What you owe</div>
+                            <div className={styles.sectionSub}>{liabilities.length} liabilities</div>
+                        </div>
+                        
+                        {liabilities.length === 0 ? (
+                            <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No liabilities found.</div>
+                        ) : (
+                            liabilities.map(l => (
+                                <div className={styles.loanCard} key={l.name}>
+                                    <div className={styles.loanTop}>
+                                        <div className={styles.loanName}>{l.name}</div>
+                                        <div className={styles.loanRate}>{l.interestRate}% p.a.</div>
+                                    </div>
+                                    <div className={styles.loanAmt}>₹{formatCurrency(l.outstanding)} <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>outstanding</span></div>
+                                    
+                                    <div className={styles.loanFoot}>
+                                        <div><div className={styles.k}>EMI</div><div className={styles.v}>₹{formatCurrency(l.emi)} / mo</div></div>
+                                        <div><div className={styles.k}>Type</div><div className={styles.v}>{l.type}</div></div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+
+                        <div style={{ marginTop: '22px' }}>
+                            <div className={styles.sectionSub} style={{ marginBottom: '12px' }}>Goals this is funding</div>
+                            <div className={styles.goals}>
+                                {goals.length === 0 ? (
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No goals found.</div>
+                                ) : (
+                                    goals.map(g => {
+                                        const pct = g.target > 0 ? (g.current / g.target) * 100 : 0;
+                                        return (
+                                            <div className={styles.goalRow} key={g.name}>
+                                                <div className={styles.goalTop}>
+                                                    <span className={styles.gName}>{g.name}</span>
+                                                    <span className={styles.gAmt}>₹{formatCurrency(g.current)} / ₹{formatCurrency(g.target)}</span>
+                                                </div>
+                                                <div className={styles.goalBar}>
+                                                    <div className={styles.goalBarFill} style={{ width: `${Math.min(100, pct)}%` }}></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
-            )}
+
+                {/* TREND */}
+                <div className={styles.section} style={{ borderBottom: 'none' }}>
+                    <div className={styles.sectionHead}>
+                        <div className={styles.sectionTitle}>Net worth over time</div>
+                        <div className={styles.sectionSub}>Last 12 months</div>
+                    </div>
+                    <div className={styles.trendWrap}>
+                        <div className={styles.trendFigures}>
+                            <div className={styles.tfNum}>₹{formatCurrency(netWorth)}</div>
+                            <div className={styles.tfLbl}>Current</div>
+                        </div>
+                        <svg width="100%" height="120" viewBox="0 0 600 160" preserveAspectRatio="none" style={{ flex: 1 }}>
+                            <defs>
+                                <linearGradient id="fillgrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.35"/>
+                                    <stop offset="100%" stopColor="#60a5fa" stopOpacity="0"/>
+                                </linearGradient>
+                            </defs>
+                            <polygon points="0,150 54.5,135.8 109,116.9 163.6,126.4 218.2,102.8 272.7,83.9 327.3,93.3 381.8,69.7 436.4,50.8 490.9,41.3 545.5,46.1 600,30 600,160 0,160" fill="url(#fillgrad)"/>
+                            <polyline points="0,150 54.5,135.8 109,116.9 163.6,126.4 218.2,102.8 272.7,83.9 327.3,93.3 381.8,69.7 436.4,50.8 490.9,41.3 545.5,46.1 600,30"
+                                fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+
+                {showAgePrompt && (
+                    <div className={styles.modalOverlay}>
+                        <div className={styles.modalContent}>
+                            <h2 style={{ marginBottom: '12px', fontSize: '20px' }}>Welcome to Portfolio</h2>
+                            <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '14px', lineHeight: '1.5' }}>
+                                To accurately calculate your Portfolio Health Score and Age-Risk Alignment, we need to know your age.
+                            </p>
+                            <div style={{ marginBottom: '20px' }}>
+                                <NumberInput 
+                                    placeholder="Enter your age" 
+                                    value={promptAge}
+                                    onChange={(val) => setPromptAge(String(val))}
+                                    className={styles.ageInputModal}
+                                    autoFocus
+                                />
+                            </div>
+                            <button 
+                                onClick={handleSaveAge} 
+                                disabled={isSubmittingAge || !promptAge}
+                                className={styles.saveAgeBtn}
+                            >
+                                {isSubmittingAge ? 'Saving...' : 'Save & Continue'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+            </div>
         </div>
     );
 }

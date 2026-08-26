@@ -1,0 +1,159 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    animation: fadeIn 0.4s ease;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px;
+    color: var(--text-primary);
+}
+
+.section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sectionTitle {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 16px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.input {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.btnPrimary {
+    background: var(--accent-primary);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btnPrimary:hover {
+    opacity: 0.9;
+}
+
+.btnSecondary {
+    background: transparent;
+    color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnSecondary:hover {
+    background: rgba(96, 165, 250, 0.1);
+}
+
+.btnDanger {
+    background: transparent;
+    color: var(--color-loss);
+    border: none;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.listItem {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.itemMain {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.itemName {
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+.itemDesc {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.itemActions {
+    display: flex;
+    gap: 12px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

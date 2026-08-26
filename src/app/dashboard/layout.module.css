@@ -231,6 +231,7 @@
   background: rgba(201, 106, 92, 0.12);
 }
 
+.menuItem,
 .logout {
   display: flex;
   align-items: center;
@@ -247,6 +248,8 @@
   cursor: pointer;
   text-align: left;
 }
+
+.menuItem:hover,
 
 .logout:hover {
   background: #132234;

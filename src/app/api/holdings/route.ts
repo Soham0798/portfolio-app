@@ -4,6 +4,9 @@ import { getCurrentUser } from '@/lib/auth';
 import Transaction from '@/models/Transaction';
 import Instrument from '@/models/Instrument';
 import ManualAsset from '@/models/ManualAssets';
+import Liability from '@/models/Liability';
+import Goal from '@/models/Goal';
+import UserProfile from '@/models/UserProfile';
 
 import mongoose from 'mongoose';
 
@@ -122,11 +125,63 @@ export async function GET(req: NextRequest) {
     const totalValue = marketValue + manualValue;
     const totalInvested = marketInvested + manualInvested;
     const totalGain = totalValue - totalInvested;
-    const totalDayGain = holdings.reduce((sum, h) => sum + h.dayGain, 0);
+    const totalDayGain = holdings.reduce((sum: any, h: any) => sum + h.dayGain, 0);
+
+    // Mocked Portfolio Data
+    const engineAssets = [
+        ...holdings.map((h: any) => ({
+            name: h.name,
+            type: h.assetType,
+            value: h.currentValue,
+            cost: h.totalInvested,
+            isLiquid: h.assetType === 'ETF' || h.assetType === 'STOCK' || h.assetType === 'MUTUAL_FUND'
+        })),
+        ...manualAssets.map((a: any) => ({
+            name: a.name,
+            type: a.assetType,
+            value: a.currentValue,
+            cost: a.totalInvested,
+            isLiquid: a.assetType === 'CASH' || a.assetType === 'FD'
+        }))
+    ];
+
+    const liabilities = await Liability.find(matchStage);
+    const goals = await Goal.find(matchStage);
+
+    let userProfile = null;
+    if (profile !== 'combined') {
+        userProfile = await UserProfile.findOne({ 
+            userId: new mongoose.Types.ObjectId(user.userId),
+            profile: profile || 'default'
+        });
+    }
+
+    const resolvedProfile = userProfile ? userProfile : {
+        age: 30,
+        monthlyIncome: 0,
+        monthlyExpenses: 0,
+        insuranceCover: 0
+    } as any;
+
+    const PortfolioData = {
+        assets: engineAssets,
+        liabilities,
+        goals,
+        userProfile: resolvedProfile
+    };
+
+    // Calculate Portfolio Engine scores and insights
+    const { calculateHealthScore, generateInsights } = await import('@/lib/portfolioEngine');
+    const healthScore = calculateHealthScore(PortfolioData);
+    const insights = generateInsights(PortfolioData);
 
     return NextResponse.json({
         holdings,
         manualAssets,
+        liabilities,
+        goals,
+        healthScore,
+        insights,
         summary: {
             totalValue,
             totalInvested,
@@ -136,6 +191,9 @@ export async function GET(req: NextRequest) {
             totalDayGainPercent: totalValue > 0 ? (totalDayGain / (totalValue - totalDayGain)) * 100 : 0,
             marketValue,
             manualValue,
+            netWorth: totalValue - liabilities.reduce((sum, l) => sum + (l.outstanding || 0), 0),
+            isProfileConfigured: !!userProfile,
+            userProfile: resolvedProfile
         },
     });
 }

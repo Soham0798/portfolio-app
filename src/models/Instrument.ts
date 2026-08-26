@@ -7,6 +7,7 @@ export const AssetTypes = [
 export type AssetType = typeof AssetTypes[number];
 
 export interface IInstrument extends Document {
+    userId: mongoose.Types.ObjectId;
     tickerSymbol: string;
     name: string;
     assetType: AssetType;
@@ -19,6 +20,11 @@ export interface IInstrument extends Document {
 
 const InstrumentSchema = new Schema<IInstrument>(
     {
+        userId: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+        },
         tickerSymbol: {
             type: String,
             required: true,
