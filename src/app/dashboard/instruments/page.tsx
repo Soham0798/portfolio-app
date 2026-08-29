@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './instruments.module.css';
 import layoutStyles from '../layout.module.css';
@@ -34,6 +34,32 @@ export default function InstrumentsPage() {
         assetType: 'STOCK',
         exchange: 'NSE',
     });
+
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleSearch = (query: string, assetType: string) => {
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        if (query.length < 2) {
+            setSearchResults([]);
+            return;
+        }
+        setIsSearching(true);
+        searchTimerRef.current = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/instruments/search?q=${encodeURIComponent(query)}&type=${assetType}`);
+                const data = await res.json();
+                setSearchResults(data.results || []);
+            } catch {
+                setSearchResults([]);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 300);
+    };
 
     const fetchInstruments = async () => {
         setLoading(true);
@@ -242,10 +268,84 @@ export default function InstrumentsPage() {
 
             {/* Add/Edit Modal */}
             {showModal && (
-                <div className={styles.overlay} onClick={() => { setShowModal(false); resetForm(); }}>
+                <div className={styles.overlay} onClick={() => { setShowModal(false); resetForm(); setSearchQuery(''); setSearchResults([]); }}>
                     <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                         <h3 className={styles.modalTitle}>{editingId ? 'Edit Instrument' : 'Add Instrument'}</h3>
                         <form onSubmit={handleSubmit} className={styles.form}>
+
+                            <div className={styles.row}>
+                                <div className={styles.field}>
+                                    <label className="label">Asset Type</label>
+                                    <select className="input" value={form.assetType} onChange={(e) => {
+                                        setForm({ ...form, assetType: e.target.value, name: '', tickerSymbol: '' });
+                                        setSearchQuery('');
+                                        setSearchResults([]);
+                                    }}>
+                                        {ASSET_TYPES.map((t) => (
+                                            <option key={t} value={t}>{t.replace('_', ' ')}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className={styles.field}>
+                                    <label className="label">Exchange</label>
+                                    <select className="input" value={form.exchange} onChange={(e) => setForm({ ...form, exchange: e.target.value })}>
+                                        <option value="NSE">NSE</option>
+                                        <option value="BSE">BSE</option>
+                                        <option value="AMFI">AMFI</option>
+                                        <option value="NPS">NPS Trust</option>
+                                        <option value="OTHER">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Search field for STOCK and MUTUAL_FUND */}
+                            {(form.assetType === 'STOCK' || form.assetType === 'MUTUAL_FUND') && !editingId && (
+                                <div className={styles.field} style={{ position: 'relative' }}>
+                                    <label className="label">
+                                        Search {form.assetType === 'STOCK' ? 'Stock' : 'Mutual Fund'}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="input"
+                                        placeholder={form.assetType === 'STOCK' ? 'Type to search stocks... e.g. Reliance' : 'Type to search mutual funds... e.g. PPFAS Flexi'}
+                                        value={searchQuery}
+                                        onChange={(e) => {
+                                            setSearchQuery(e.target.value);
+                                            handleSearch(e.target.value, form.assetType);
+                                        }}
+                                        autoComplete="off"
+                                    />
+                                    {isSearching && (
+                                        <div className={styles.searchStatus}>Searching...</div>
+                                    )}
+                                    {searchResults.length > 0 && (
+                                        <div className={styles.searchDropdown}>
+                                            {searchResults.map((r, i) => (
+                                                <button
+                                                    key={i}
+                                                    type="button"
+                                                    className={styles.searchItem}
+                                                    title={r.name}
+                                                    onClick={() => {
+                                                        setForm({
+                                                            ...form,
+                                                            name: r.name,
+                                                            tickerSymbol: r.schemeCode || r.symbol,
+                                                            exchange: r.type === 'MUTUAL_FUND' ? 'AMFI' : 'NSE',
+                                                        });
+                                                        setSearchQuery(r.name);
+                                                        setSearchResults([]);
+                                                    }}
+                                                >
+                                                    <span className={styles.searchItemName}>{r.name}</span>
+                                                    <span className={styles.searchItemTicker}>{r.schemeCode || r.symbol}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <div className={styles.field}>
                                 <label className="label">Name</label>
                                 <input
@@ -263,36 +363,15 @@ export default function InstrumentsPage() {
                                 <input
                                     type="text"
                                     className="input"
-                                    placeholder="e.g. RELIANCE.NS"
+                                    placeholder={form.assetType === 'MUTUAL_FUND' ? 'e.g. 120503' : 'e.g. RELIANCE.NS'}
                                     value={form.tickerSymbol}
                                     onChange={(e) => setForm({ ...form, tickerSymbol: e.target.value })}
                                     required
                                 />
                             </div>
-
-                            <div className={styles.row}>
-                                <div className={styles.field}>
-                                    <label className="label">Asset Type</label>
-                                    <select className="input" value={form.assetType} onChange={(e) => setForm({ ...form, assetType: e.target.value })}>
-                                        {ASSET_TYPES.map((t) => (
-                                            <option key={t} value={t}>{t.replace('_', ' ')}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className={styles.field}>
-                                    <label className="label">Exchange</label>
-                                    <select className="input" value={form.exchange} onChange={(e) => setForm({ ...form, exchange: e.target.value })}>
-                                        <option value="NSE">NSE</option>
-                                        <option value="BSE">BSE</option>
-                                        <option value="AMFI">AMFI</option>
-                                        <option value="NPS">NPS Trust</option>
-                                        <option value="OTHER">Other</option>
-                                    </select>
-                                </div>
-                            </div>
                             
                                 <div className={styles.formActions} style={{ marginTop: '24px' }}>
-                                    <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
+                                    <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); setSearchQuery(''); setSearchResults([]); }}>Cancel</button>
                                     <button type="submit" className="btn-primary">{editingId ? 'Update' : 'Add Instrument'}</button>
                                 </div>
                         </form>

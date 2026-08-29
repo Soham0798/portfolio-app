@@ -222,6 +222,7 @@ export async function POST(req: NextRequest) {
                 const finalPrice = livePrice || marketPrice;
 
                 let instrument = await Instrument.findOne({
+                    userId: user.userId,
                     $or: [
                         { tickerSymbol },
                         { name: { $regex: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i') } },
@@ -230,6 +231,7 @@ export async function POST(req: NextRequest) {
 
                 if (!instrument) {
                     instrument = await Instrument.create({
+                        userId: user.userId,
                         name,
                         tickerSymbol,
                         assetType: 'STOCK',
@@ -340,6 +342,7 @@ export async function POST(req: NextRequest) {
             try {
                 const tickerSymbol = `${schemeName.replace(/\s+/g, '').toUpperCase()}.MF`;
                 let instrument = await Instrument.findOne({
+                    userId: user.userId,
                     $or: [
                         { tickerSymbol },
                         { name: { $regex: new RegExp(`^${schemeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i') } },
@@ -348,6 +351,7 @@ export async function POST(req: NextRequest) {
 
                 if (!instrument) {
                     instrument = await Instrument.create({
+                        userId: user.userId,
                         name: schemeName,
                         tickerSymbol,
                         assetType: 'MUTUAL_FUND',

@@ -63,6 +63,7 @@ async function parseZerodha(lines: string[], userId: string, profile: string) {
         try {
             // Find or create instrument
             let instrument = await Instrument.findOne({
+                userId,
                 $or: [
                     { tickerSymbol: `${symbol}.NS` },
                     { tickerSymbol: symbol },
@@ -72,6 +73,7 @@ async function parseZerodha(lines: string[], userId: string, profile: string) {
 
             if (!instrument) {
                 instrument = await Instrument.create({
+                    userId,
                     name: symbol,
                     tickerSymbol: exchange === 'NSE' ? `${symbol}.NS` : `${symbol}.BO`,
                     assetType: 'STOCK',
@@ -215,10 +217,11 @@ async function parseGroww(lines: string[], userId: string, profile: string) {
                 tickerSymbol = `${symbolOrCode}.NS`;
             }
 
-            let instrument = await Instrument.findOne({ tickerSymbol });
+            let instrument = await Instrument.findOne({ tickerSymbol, userId });
 
             if (!instrument) {
                 instrument = await Instrument.create({
+                    userId,
                     name: name,
                     tickerSymbol,
                     assetType,
@@ -408,6 +411,7 @@ async function parseGoldenBulls(lines: string[], userId: string) {
             const tickerSymbol = tickerMap[scripLowerMap] || `${scrip.replace(/\s+/g, '').toUpperCase()}.NS`;
 
             let instrument = await Instrument.findOne({
+                userId,
                 $or: [
                     { tickerSymbol },
                     { name: { $regex: new RegExp(`^${scrip.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i') } },
@@ -416,6 +420,7 @@ async function parseGoldenBulls(lines: string[], userId: string) {
 
             if (!instrument) {
                 instrument = await Instrument.create({
+                    userId,
                     name: scrip,
                     tickerSymbol,
                     assetType: 'STOCK',

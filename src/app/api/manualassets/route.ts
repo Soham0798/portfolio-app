@@ -46,10 +46,12 @@ export async function POST(req: NextRequest) {
             let instrument = await Instrument.findOne({
                 tickerSymbol,
                 assetType: body.assetType,
+                userId: user.userId,
             });
 
             if (!instrument) {
                 instrument = await Instrument.create({
+                    userId: user.userId,
                     tickerSymbol,
                     name,
                     assetType: body.assetType,
