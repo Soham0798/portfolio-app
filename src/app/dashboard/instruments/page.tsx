@@ -298,16 +298,16 @@ export default function InstrumentsPage() {
                                 </div>
                             </div>
 
-                            {/* Search field for STOCK and MUTUAL_FUND */}
-                            {(form.assetType === 'STOCK' || form.assetType === 'MUTUAL_FUND') && !editingId && (
+                            {/* Search field for STOCK, MUTUAL_FUND, and NPS */}
+                            {(form.assetType === 'STOCK' || form.assetType === 'MUTUAL_FUND' || form.assetType === 'NPS') && !editingId && (
                                 <div className={styles.field} style={{ position: 'relative' }}>
                                     <label className="label">
-                                        Search {form.assetType === 'STOCK' ? 'Stock' : 'Mutual Fund'}
+                                        Search {form.assetType === 'STOCK' ? 'Stock' : form.assetType === 'MUTUAL_FUND' ? 'Mutual Fund' : 'NPS Scheme'}
                                     </label>
                                     <input
                                         type="text"
                                         className="input"
-                                        placeholder={form.assetType === 'STOCK' ? 'Type to search stocks... e.g. Reliance' : 'Type to search mutual funds... e.g. PPFAS Flexi'}
+                                        placeholder={form.assetType === 'STOCK' ? 'Type to search stocks... e.g. Reliance' : form.assetType === 'MUTUAL_FUND' ? 'Type to search mutual funds... e.g. PPFAS Flexi' : 'Type to search NPS schemes... e.g. SBI Pension'}
                                         value={searchQuery}
                                         onChange={(e) => {
                                             setSearchQuery(e.target.value);
@@ -330,7 +330,7 @@ export default function InstrumentsPage() {
                                                             ...form,
                                                             name: r.name,
                                                             tickerSymbol: r.schemeCode || r.symbol,
-                                                            exchange: r.type === 'MUTUAL_FUND' ? 'AMFI' : 'NSE',
+                                                            exchange: r.type === 'MUTUAL_FUND' ? 'AMFI' : r.type === 'NPS' ? 'NPS Trust' : 'NSE',
                                                         });
                                                         setSearchQuery(r.name);
                                                         setSearchResults([]);

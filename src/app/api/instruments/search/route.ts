@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const query = searchParams.get('q');
-    const type = searchParams.get('type'); // STOCK or MUTUAL_FUND
+    const type = searchParams.get('type'); // STOCK, MUTUAL_FUND, or NPS
 
     if (!query || query.length < 2) {
         return NextResponse.json({ results: [] });
@@ -76,6 +76,32 @@ export async function GET(req: NextRequest) {
                     name: s.schemeName,
                     schemeCode: s.schemeCode.toString(),
                     type: 'MUTUAL_FUND',
+                }));
+
+            return NextResponse.json({ results: matches });
+        }
+
+        if (type === 'NPS') {
+            const res = await fetch('https://npsnav.in/api/schemes', {
+                next: { revalidate: 86400 } // Cache for 1 day
+            });
+            const data = await res.json();
+            const schemes = data.data || [];
+            
+            const normalizedQuery = query.toLowerCase().replace(/[^a-z0-9]/g, ' ').trim();
+            const queryWords = normalizedQuery.split(/\s+/).filter(Boolean);
+
+            const matches = schemes
+                .filter((s: [string, string]) => {
+                    const name = s[1].toLowerCase();
+                    return queryWords.every((w) => name.includes(w));
+                })
+                .slice(0, 10)
+                .map((s: [string, string]) => ({
+                    symbol: s[0],
+                    name: s[1],
+                    type: 'NPS',
+                    exchange: 'NPS Trust',
                 }));
 
             return NextResponse.json({ results: matches });

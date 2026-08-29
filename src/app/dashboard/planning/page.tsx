@@ -15,6 +15,10 @@ export default function PlanningPage() {
     // New item state
     const [newLiability, setNewLiability] = useState({ name: '', type: 'Home', outstanding: '', emi: '', interestRate: '' });
     const [newGoal, setNewGoal] = useState({ name: '', target: '', current: '', timelineYears: '' });
+    
+    // Edit state
+    const [editLiabilityId, setEditLiabilityId] = useState<string | null>(null);
+    const [editGoalId, setEditGoalId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -56,14 +60,17 @@ export default function PlanningPage() {
         alert('Profile saved!');
     }
 
-    async function addLiability(e: React.FormEvent) {
+    async function saveLiability(e: React.FormEvent) {
         e.preventDefault();
-        await fetch('/api/liabilities', {
-            method: 'POST',
+        const url = editLiabilityId ? `/api/liabilities/${editLiabilityId}` : '/api/liabilities';
+        const method = editLiabilityId ? 'PUT' : 'POST';
+        await fetch(url, {
+            method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...newLiability, profile: profile === 'combined' ? 'default' : profile })
         });
         setNewLiability({ name: '', type: 'Home', outstanding: '', emi: '', interestRate: '' });
+        setEditLiabilityId(null);
         fetchData();
     }
 
@@ -73,14 +80,17 @@ export default function PlanningPage() {
         fetchData();
     }
 
-    async function addGoal(e: React.FormEvent) {
+    async function saveGoal(e: React.FormEvent) {
         e.preventDefault();
-        await fetch('/api/goals', {
-            method: 'POST',
+        const url = editGoalId ? `/api/goals/${editGoalId}` : '/api/goals';
+        const method = editGoalId ? 'PUT' : 'POST';
+        await fetch(url, {
+            method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...newGoal, profile: profile === 'combined' ? 'default' : profile })
         });
         setNewGoal({ name: '', target: '', current: '', timelineYears: '' });
+        setEditGoalId(null);
         fetchData();
     }
 
@@ -128,7 +138,7 @@ export default function PlanningPage() {
             <div className={styles.section}>
                 <div className={styles.sectionTitle}>Your Liabilities</div>
                 
-                <form className={styles.grid} onSubmit={addLiability}>
+                <form className={styles.grid} onSubmit={saveLiability}>
                     <div className={styles.formGroup}>
                         <label className={styles.label}>Loan Name</label>
                         <input className={styles.input} placeholder="e.g. SBI Home Loan" required value={newLiability.name} onChange={e => setNewLiability({...newLiability, name: e.target.value})} />
@@ -145,8 +155,14 @@ export default function PlanningPage() {
                         <label className={styles.label}>Interest Rate (%)</label>
                         <NumberInput className={styles.input} step="0.1" required value={newLiability.interestRate} onChange={val => setNewLiability({...newLiability, interestRate: String(val)})} />
                     </div>
-                    <div className={styles.formGroup} style={{ justifyContent: 'flex-end' }}>
-                        <button type="submit" className={styles.btnSecondary}>Add Liability</button>
+                    <div className={styles.formGroup} style={{ justifyContent: 'flex-end', flexDirection: 'row', gap: '8px' }}>
+                        {editLiabilityId && (
+                            <button type="button" className={styles.btnDanger} style={{ background: 'transparent', border: '1px solid #4a5568' }} onClick={() => {
+                                setEditLiabilityId(null);
+                                setNewLiability({ name: '', type: 'Home', outstanding: '', emi: '', interestRate: '' });
+                            }}>Cancel</button>
+                        )}
+                        <button type="submit" className={styles.btnSecondary}>{editLiabilityId ? 'Update Liability' : 'Add Liability'}</button>
                     </div>
                 </form>
 
@@ -157,7 +173,17 @@ export default function PlanningPage() {
                                 <div className={styles.itemName}>{l.name}</div>
                                 <div className={styles.itemDesc}>₹{l.outstanding.toLocaleString()} outstanding • EMI: ₹{l.emi.toLocaleString()} • {l.interestRate}%</div>
                             </div>
-                            <div className={styles.itemActions}>
+                            <div className={styles.itemActions} style={{ display: 'flex', gap: '8px' }}>
+                                <button className={styles.btnSecondary} style={{ background: 'transparent', border: '1px solid var(--border-subtle)', padding: '6px 12px' }} onClick={() => {
+                                    setEditLiabilityId(l._id);
+                                    setNewLiability({
+                                        name: l.name,
+                                        type: l.type || 'Home',
+                                        outstanding: String(l.outstanding),
+                                        emi: String(l.emi),
+                                        interestRate: String(l.interestRate)
+                                    });
+                                }}>Edit</button>
                                 <button className={styles.btnDanger} onClick={() => deleteLiability(l._id)}>Delete</button>
                             </div>
                         </div>
@@ -168,7 +194,7 @@ export default function PlanningPage() {
             <div className={styles.section}>
                 <div className={styles.sectionTitle}>Financial Goals</div>
                 
-                <form className={styles.grid} onSubmit={addGoal}>
+                <form className={styles.grid} onSubmit={saveGoal}>
                     <div className={styles.formGroup}>
                         <label className={styles.label}>Goal Name</label>
                         <input className={styles.input} placeholder="e.g. Daughter's Education" required value={newGoal.name} onChange={e => setNewGoal({...newGoal, name: e.target.value})} />
@@ -185,8 +211,14 @@ export default function PlanningPage() {
                         <label className={styles.label}>Years Left</label>
                         <NumberInput className={styles.input} required value={newGoal.timelineYears} onChange={val => setNewGoal({...newGoal, timelineYears: String(val)})} step={1} />
                     </div>
-                    <div className={styles.formGroup} style={{ justifyContent: 'flex-end' }}>
-                        <button type="submit" className={styles.btnSecondary}>Add Goal</button>
+                    <div className={styles.formGroup} style={{ justifyContent: 'flex-end', flexDirection: 'row', gap: '8px' }}>
+                        {editGoalId && (
+                            <button type="button" className={styles.btnDanger} style={{ background: 'transparent', border: '1px solid #4a5568' }} onClick={() => {
+                                setEditGoalId(null);
+                                setNewGoal({ name: '', target: '', current: '', timelineYears: '' });
+                            }}>Cancel</button>
+                        )}
+                        <button type="submit" className={styles.btnSecondary}>{editGoalId ? 'Update Goal' : 'Add Goal'}</button>
                     </div>
                 </form>
 
@@ -197,7 +229,16 @@ export default function PlanningPage() {
                                 <div className={styles.itemName}>{g.name}</div>
                                 <div className={styles.itemDesc}>Target: ₹{g.target.toLocaleString()} • Current: ₹{g.current.toLocaleString()} • {g.timelineYears} years left</div>
                             </div>
-                            <div className={styles.itemActions}>
+                            <div className={styles.itemActions} style={{ display: 'flex', gap: '8px' }}>
+                                <button className={styles.btnSecondary} style={{ background: 'transparent', border: '1px solid var(--border-subtle)', padding: '6px 12px' }} onClick={() => {
+                                    setEditGoalId(g._id);
+                                    setNewGoal({
+                                        name: g.name,
+                                        target: String(g.target),
+                                        current: String(g.current),
+                                        timelineYears: String(g.timelineYears)
+                                    });
+                                }}>Edit</button>
                                 <button className={styles.btnDanger} onClick={() => deleteGoal(g._id)}>Delete</button>
                             </div>
                         </div>
