@@ -493,7 +493,7 @@ export default function DashboardPage() {
                                         <Tooltip 
                                             contentStyle={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', borderRadius: '8px', fontSize: '12px' }}
                                             itemStyle={{ color: 'var(--text-primary)' }}
-                                            formatter={(value: number) => [`₹${formatCurrency(value)}`, 'Net Worth']}
+                                            formatter={(value: any) => [`₹${formatCurrency(Number(value) || 0)}`, 'Net Worth']}
                                             labelFormatter={(label) => label}
                                         />
                                         <Area type="monotone" dataKey="value" stroke="#60a5fa" strokeWidth={2.5} fillOpacity={1} fill="url(#fillgrad)" />
