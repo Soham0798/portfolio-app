@@ -26,17 +26,10 @@ export async function POST(req: NextRequest) {
         }
 
         let isValid = false;
-        try {
-            const [salt, storedHash] = user.password.split(':');
-            if (salt && storedHash) {
-                const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-                // Use timingSafeEqual to prevent timing attacks, must pad to same length just in case
-                if (hash.length === storedHash.length) {
-                    isValid = crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(storedHash));
-                }
-            }
-        } catch (e) {
-            isValid = false;
+        const [salt, storedHash] = user.password.split(':');
+        if (salt && storedHash) {
+            const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+            isValid = (hash === storedHash);
         }
         
         if (!isValid) {

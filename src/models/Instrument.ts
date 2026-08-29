@@ -64,8 +64,7 @@ const InstrumentSchema = new Schema<IInstrument>(
     { timestamps: true }
 );
 
-InstrumentSchema.index({ tickerSymbol: 1, assetType: 1 }, { unique: true });
-
+InstrumentSchema.index({ userId: 1, tickerSymbol: 1, assetType: 1 }, { unique: true });
 
 InstrumentSchema.index({ assetType: 1 });
 

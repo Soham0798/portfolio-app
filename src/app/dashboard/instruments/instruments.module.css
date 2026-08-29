@@ -147,8 +147,7 @@
 
 .searchItem {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
     width: 100%;
     padding: 10px 14px;
     border: none;
@@ -159,16 +158,11 @@
     font-family: inherit;
     font-size: 13px;
     transition: background 0.15s ease;
-    gap: 12px;
+    gap: 4px;
 }
 
 .searchItem:hover {
     background: rgba(96, 165, 250, 0.1);
-}
-
-.searchItem:hover .searchItemName {
-    white-space: normal;
-    word-break: break-word;
 }
 
 .searchItem + .searchItem {
@@ -176,17 +170,14 @@
 }
 
 .searchItemName {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.4;
+    word-break: break-word;
 }
 
 .searchItemTicker {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
     color: var(--text-muted);
-    flex-shrink: 0;
 }
 
 @keyframes fadeIn {

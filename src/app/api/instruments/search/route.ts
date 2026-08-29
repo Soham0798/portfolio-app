@@ -17,7 +17,9 @@ export async function GET(req: NextRequest) {
 
     try {
         if (type === 'STOCK') {
-            const res = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`);
+            const res = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`, {
+                next: { revalidate: 3600 } // Cache for 1 hour
+            });
             const searchResults = await res.json();
 
             const quotes = (searchResults.quotes || [])
@@ -47,13 +49,13 @@ export async function GET(req: NextRequest) {
 
         if (type === 'MUTUAL_FUND') {
             const allSchemes = await fetchAllMutualFunds();
-            const normalizedQuery = query.toLowerCase();
+            const normalizedQuery = query.toLowerCase().replace(/[^a-z0-9]/g, ' ').trim();
+            const queryWords = normalizedQuery.split(/\s+/).filter(Boolean);
 
             const matches = allSchemes
                 .filter((s) => {
                     const name = s.schemeName.toLowerCase();
                     // Must contain all query words
-                    const queryWords = normalizedQuery.split(/\s+/);
                     return queryWords.every((w) => name.includes(w));
                 })
                 // Prefer Direct Growth plans

@@ -325,7 +325,6 @@ export default function InstrumentsPage() {
                                                     key={i}
                                                     type="button"
                                                     className={styles.searchItem}
-                                                    title={r.name}
                                                     onClick={() => {
                                                         setForm({
                                                             ...form,

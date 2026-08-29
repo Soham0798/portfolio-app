@@ -58,7 +58,9 @@ let amfiCache: AMFIScheme[] | null = null;
 export async function fetchAllMutualFunds(): Promise<AMFIScheme[]> {
     if (amfiCache) return amfiCache;
     try {
-        const res = await fetch('https://api.mfapi.in/mf');
+        const res = await fetch('https://api.mfapi.in/mf', {
+            next: { revalidate: 86400 } // Cache for 24 hours
+        });
         if (!res.ok) throw new Error('Failed to fetch AMFI list');
         const data = await res.json();
         amfiCache = data;

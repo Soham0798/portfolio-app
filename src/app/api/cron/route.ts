@@ -9,9 +9,7 @@ import { refreshAllPrices } from '@/lib/prices';
 function verifyCronSecret(req: NextRequest): boolean {
     const authHeader = req.headers.get('authorization');
     const secret = process.env.CRON_SECRET;
-    const url = new URL(req.url);
-    const urlSecret = url.searchParams.get('secret');
-    return authHeader === `Bearer ${secret}` || urlSecret === secret;
+    return authHeader === `Bearer ${secret}`;
 }
 
 export async function GET(req: NextRequest) {
@@ -75,11 +73,15 @@ async function generateSnapshotInternal() {
     const istDate = new Date(now.getTime() + istOffset);
     const dateString = istDate.toISOString().split('T')[0];
 
-    const Transaction_ = await Transaction.findOne();
-    if (!Transaction_) {
+    const userIds = await Transaction.distinct('userId');
+    if (!userIds || userIds.length === 0) {
         return null;
     }
-    const userId = Transaction_.userId;
+
+    let globalValue = 0;
+    let globalGain = 0;
+
+    for (const userId of userIds) {
 
     const holdings = await Transaction.aggregate([
         { $match: { userId } },
@@ -171,23 +173,27 @@ async function generateSnapshotInternal() {
 
     const totalDayGain = holdings.reduce((s: number, h: any) => s + h.dayGain, 0);
 
-    await DailySnapshot.findOneAndUpdate(
-        { userId, dateString },
-        {
-            $set: {
-                date: istDate,
-                totalValue,
-                totalInvested,
-                dayGain: totalDayGain,
-                dayGainPercent: totalValue > 0 ? (totalDayGain / (totalValue - totalDayGain)) * 100 : 0,
-                byProfile: { sameer: sameerSnapshot, snehal: snehalSnapshot, soham: sohamSnapshot },
-                byAssetClass,
-            }
-        },
-        { upsert: true, new: true }
-    );
+        await DailySnapshot.findOneAndUpdate(
+            { userId, dateString },
+            {
+                $set: {
+                    date: istDate,
+                    totalValue,
+                    totalInvested,
+                    dayGain: totalDayGain,
+                    dayGainPercent: totalValue > 0 ? (totalDayGain / (totalValue - totalDayGain)) * 100 : 0,
+                    byProfile: { sameer: sameerSnapshot, snehal: snehalSnapshot, soham: sohamSnapshot },
+                    byAssetClass,
+                }
+            },
+            { upsert: true, new: true }
+        );
 
-    return { dateString, totalValue, totalDayGain };
+        globalValue += totalValue;
+        globalGain += totalDayGain;
+    }
+
+    return { dateString, totalValue: globalValue, totalDayGain: globalGain };
 }
 
 

@@ -5,6 +5,7 @@ import { useProfile } from '@/components/ProfileContext';
 import styles from './dashboard.module.css';
 import Link from 'next/link';
 import NumberInput from '@/components/NumberInput';
+import { ResponsiveContainer, AreaChart, Area, XAxis, Tooltip } from 'recharts';
 
 interface Holding {
     instrumentId: string;
@@ -68,6 +69,7 @@ export default function DashboardPage() {
     const [insights, setInsights] = useState<Insight[]>([]);
     const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
     const [summary, setSummary] = useState<Summary | null>(null);
+    const [snapshots, setSnapshots] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const [showBreakdown, setShowBreakdown] = useState(false);
@@ -79,8 +81,14 @@ export default function DashboardPage() {
         setLoading(true);
         try {
             const profileParam = profile === 'combined' ? '' : `?profile=${profile}`;
-            const res = await fetch(`/api/holdings${profileParam}`);
+            
+            const [res, snapRes] = await Promise.all([
+                fetch(`/api/holdings${profileParam}`),
+                fetch(`/api/snapshots${profileParam}`)
+            ]);
+            
             const data = await res.json();
+            const snapData = await snapRes.json();
             
             setHoldings(data.holdings || []);
             setLiabilities(data.liabilities || []);
@@ -88,6 +96,7 @@ export default function DashboardPage() {
             setInsights(data.insights || []);
             setHealthScore(data.healthScore || null);
             setSummary(data.summary || null);
+            setSnapshots(snapData.snapshots || []);
 
             if (data.summary && !data.summary.isProfileConfigured && profile !== 'combined') {
                 setShowAgePrompt(true);
@@ -131,10 +140,45 @@ export default function DashboardPage() {
         return <div className={styles.loading}>Loading Portfolio...</div>;
     }
 
+    const calculatePayoffDate = (outstanding: number, emi: number, interestRate: number) => {
+        if (emi <= 0 || outstanding <= 0) return null;
+        
+        const monthlyRate = (interestRate / 100) / 12;
+        let months = 0;
+        
+        if (monthlyRate === 0) {
+            months = outstanding / emi;
+        } else {
+            const v = 1 - (outstanding * monthlyRate) / emi;
+            if (v <= 0) return 'Never (EMI too low)';
+            months = -Math.log(v) / Math.log(1 + monthlyRate);
+        }
+        
+        if (months > 1200) return '100+ years';
+    
+        const date = new Date();
+        date.setMonth(date.getMonth() + Math.ceil(months));
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    };
+
     const netWorth = summary?.netWorth || 0;
     const totalAssets = summary?.totalValue || 0;
     const totalLiabilities = liabilities.reduce((acc, l) => acc + (l.outstanding || 0), 0);
-    const debtToAsset = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
+    const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) : 0;
+    const debtToAssetPercent = debtToAssetRatio * 100;
+    
+    // Calculate if debt is "good" or "bad" based on age
+    const age = summary?.userProfile?.age || 30;
+    // Rule of thumb: Age 20 can tolerate ~50% debt-to-asset, drops 1% per year, min 10%
+    const maxAcceptableDebt = Math.max(10, 50 - (age - 20));
+    const isDebtGood = debtToAssetPercent <= maxAcceptableDebt;
+
+    let debtInsight = "";
+    if (isDebtGood) {
+        debtInsight = `Healthy for age ${age}`;
+    } else {
+        debtInsight = `High for age ${age} (Target: <${(maxAcceptableDebt / 100).toFixed(2)})`;
+    }
     
     // Liquid roughly 30 days
     const liquidTypes = ['EQUITY', 'MUTUAL_FUND', 'CASH', 'FD', 'ETF', 'GOLD'];
@@ -293,7 +337,8 @@ export default function DashboardPage() {
                     </div>
                     <div className={styles.qsCell}>
                         <div className={styles.qsLabel}>Debt-to-asset</div>
-                        <div className={styles.qsValue}>{debtToAsset.toFixed(1)}%</div>
+                        <div className={`${styles.qsValue} ${isDebtGood ? styles.up : styles.down}`}>{debtToAssetRatio.toFixed(2)}</div>
+                        <div className={styles.qsHint}>{debtInsight}</div>
                     </div>
                     <div className={styles.qsCell}>
                         <div className={styles.qsLabel}>Liquid within 30 days</div>
@@ -304,7 +349,7 @@ export default function DashboardPage() {
                 {/* ACTIONABLE INSIGHTS */}
                 <div className={styles.section}>
                     <div className={styles.sectionHead}>
-                        <div className={styles.sectionTitle}>Today's entries</div>
+                        <div className={styles.sectionTitle}>Today's suggestions</div>
                         <div className={styles.sectionSub}>{insights.length} need attention</div>
                     </div>
 
@@ -377,6 +422,9 @@ export default function DashboardPage() {
                                     <div className={styles.loanFoot}>
                                         <div><div className={styles.k}>EMI</div><div className={styles.v}>₹{formatCurrency(l.emi)} / mo</div></div>
                                         <div><div className={styles.k}>Type</div><div className={styles.v}>{l.type}</div></div>
+                                        {calculatePayoffDate(l.outstanding, l.emi, l.interestRate) && (
+                                            <div><div className={styles.k}>Payoff Date</div><div className={styles.v}>{calculatePayoffDate(l.outstanding, l.emi, l.interestRate)}</div></div>
+                                        )}
                                     </div>
                                 </div>
                             ))
@@ -414,23 +462,52 @@ export default function DashboardPage() {
                         <div className={styles.sectionTitle}>Net worth over time</div>
                         <div className={styles.sectionSub}>Last 12 months</div>
                     </div>
-                    <div className={styles.trendWrap}>
-                        <div className={styles.trendFigures}>
-                            <div className={styles.tfNum}>₹{formatCurrency(netWorth)}</div>
-                            <div className={styles.tfLbl}>Current</div>
+                    
+                    {(() => {
+                        const chartData = snapshots.map(s => {
+                            const date = new Date(s.dateString);
+                            return {
+                                label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                                month: date.toLocaleDateString('en-US', { month: 'short' }),
+                                value: profile === 'combined' ? s.totalValue : (s.byProfile?.[profile as keyof typeof s.byProfile]?.totalValue || 0)
+                            };
+                        });
+                        
+                        return (
+                            <div className={styles.trendWrap}>
+                                <div className={styles.trendFigures}>
+                                    <div className={styles.tfNum}>₹{formatCurrency(netWorth)}</div>
+                                    <div className={styles.tfLbl}>Current</div>
+                                </div>
+                        <div style={{ width: '100%', height: '120px', marginTop: '16px' }}>
+                            {chartData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={chartData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="fillgrad" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.35"/>
+                                                <stop offset="100%" stopColor="#60a5fa" stopOpacity="0"/>
+                                            </linearGradient>
+                                        </defs>
+                                        <XAxis dataKey="month" hide={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} minTickGap={20} />
+                                        <Tooltip 
+                                            contentStyle={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', borderRadius: '8px', fontSize: '12px' }}
+                                            itemStyle={{ color: 'var(--text-primary)' }}
+                                            formatter={(value: number) => [`₹${formatCurrency(value)}`, 'Net Worth']}
+                                            labelFormatter={(label) => label}
+                                        />
+                                        <Area type="monotone" dataKey="value" stroke="#60a5fa" strokeWidth={2.5} fillOpacity={1} fill="url(#fillgrad)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '13px' }}>
+                                    Not enough data points yet.
+                                </div>
+                            )}
                         </div>
-                        <svg width="100%" height="120" viewBox="0 0 600 160" preserveAspectRatio="none" style={{ flex: 1 }}>
-                            <defs>
-                                <linearGradient id="fillgrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.35"/>
-                                    <stop offset="100%" stopColor="#60a5fa" stopOpacity="0"/>
-                                </linearGradient>
-                            </defs>
-                            <polygon points="0,150 54.5,135.8 109,116.9 163.6,126.4 218.2,102.8 272.7,83.9 327.3,93.3 381.8,69.7 436.4,50.8 490.9,41.3 545.5,46.1 600,30 600,160 0,160" fill="url(#fillgrad)"/>
-                            <polyline points="0,150 54.5,135.8 109,116.9 163.6,126.4 218.2,102.8 272.7,83.9 327.3,93.3 381.8,69.7 436.4,50.8 490.9,41.3 545.5,46.1 600,30"
-                                fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                    </div>
+                            </div>
+                        );
+                    })()}
                 </div>
 
                 {showAgePrompt && (

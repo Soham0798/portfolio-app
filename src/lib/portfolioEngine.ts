@@ -194,14 +194,7 @@ export function generateInsights(data: PortfolioData): Insight[] {
         });
     }
 
-    // Tax savings (Mocked timing)
-    insights.push({
-        id: 'tax',
-        type: 'Urgent',
-        message: 'Financial year ends in 35 days. You have ₹45,000 left in your 80C deduction limit.',
-        actionLabel: 'Invest in ELSS',
-        actionHref: '/dashboard/holdings'
-    });
+
 
     return insights;
 }

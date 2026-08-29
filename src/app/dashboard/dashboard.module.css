@@ -357,6 +357,13 @@
   color: var(--color-loss);
 }
 
+.qsHint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.3;
+}
+
 /* ---------- Section headers ---------- */
 .section {
   padding: 28px 30px;
