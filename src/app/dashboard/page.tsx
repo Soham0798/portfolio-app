@@ -75,7 +75,7 @@ export default function DashboardPage() {
     const [showBreakdown, setShowBreakdown] = useState(false);
     const [showAgePrompt, setShowAgePrompt] = useState(false);
     const [isSubmittingAge, setIsSubmittingAge] = useState(false);
-    const [promptAge, setPromptAge] = useState('');
+    const [promptDob, setPromptDob] = useState('');
 
     const fetchData = async () => {
         setLoading(true);
@@ -113,13 +113,13 @@ export default function DashboardPage() {
     }, [profile]);
 
     const handleSaveAge = async () => {
-        if (!promptAge) return;
+        if (!promptDob) return;
         setIsSubmittingAge(true);
         try {
             await fetch('/api/profile', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ age: Number(promptAge), profile: profile === 'combined' ? 'default' : profile })
+                body: JSON.stringify({ dob: promptDob, profile: profile === 'combined' ? 'default' : profile })
             });
             setShowAgePrompt(false);
             fetchData();
@@ -515,20 +515,22 @@ export default function DashboardPage() {
                         <div className={styles.modalContent}>
                             <h2 style={{ marginBottom: '12px', fontSize: '20px' }}>Welcome to Portfolio</h2>
                             <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '14px', lineHeight: '1.5' }}>
-                                To accurately calculate your Portfolio Health Score and Age-Risk Alignment, we need to know your age.
+                                To accurately calculate your Portfolio Health Score and Age-Risk Alignment, we need to know your date of birth.
                             </p>
                             <div style={{ marginBottom: '20px' }}>
-                                <NumberInput 
-                                    placeholder="Enter your age" 
-                                    value={promptAge}
-                                    onChange={(val) => setPromptAge(String(val))}
+                                <input 
+                                    type="date"
+                                    placeholder="Enter your Date of Birth" 
+                                    value={promptDob}
+                                    onChange={(e) => setPromptDob(e.target.value)}
                                     className={styles.ageInputModal}
                                     autoFocus
+                                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
                                 />
                             </div>
                             <button 
                                 onClick={handleSaveAge} 
-                                disabled={isSubmittingAge || !promptAge}
+                                disabled={isSubmittingAge || !promptDob}
                                 className={styles.saveAgeBtn}
                             >
                                 {isSubmittingAge ? 'Saving...' : 'Save & Continue'}

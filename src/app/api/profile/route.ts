@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     if (!profile) {
         profile = await UserProfile.create({
             userId: user.userId,
-            age: 30,
+            dob: null,
             monthlyIncome: 0,
             monthlyExpenses: 0,
             insuranceCover: 0,
@@ -43,7 +43,7 @@ export async function PUT(req: NextRequest) {
     const profileId = body.profile || 'default';
 
     const updateFields: any = {};
-    if (body.age !== undefined) updateFields.age = Number(body.age);
+    if (body.dob !== undefined) updateFields.dob = body.dob ? new Date(body.dob) : null;
     if (body.monthlyIncome !== undefined) updateFields.monthlyIncome = Number(body.monthlyIncome);
     if (body.monthlyExpenses !== undefined) updateFields.monthlyExpenses = Number(body.monthlyExpenses);
     if (body.insuranceCover !== undefined) updateFields.insuranceCover = Number(body.insuranceCover);

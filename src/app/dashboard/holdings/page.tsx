@@ -224,7 +224,7 @@ export default function HoldingsPage() {
                             <div className={styles.catIcon} style={{ background: 'rgba(208,162,76,0.15)' }}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="#D0A24C" strokeWidth="2"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" /></svg>
                             </div>
-                            <div className={styles.catName}>Manual Assets</div>
+                            <div className={styles.catName}>Other Assets</div>
                             <div className={styles.catCount}>{manualAssets.length}</div>
                         </div>
                         <div className={styles.catValue}>{formatCurrency(manualValue)}</div>
@@ -343,7 +343,7 @@ export default function HoldingsPage() {
                 >
                     <div className={styles.sectionHead}>
                         <div className={styles.sectionHeadLeft}>
-                            <div className={styles.sectionTitle}>Manual Assets</div>
+                            <div className={styles.sectionTitle}>Other Assets</div>
                             <div className={styles.sectionTotals}>
                                 <span>{formatCurrency(manualValue)}</span>
                                 <span className={manualPnl >= 0 ? styles.pnl : styles.pnlLoss}>
@@ -458,7 +458,7 @@ function HoldingRow({ holding, badgeColor, formatCurrency }: { holding: Holding,
                     <div className={styles.holdingChips}>
                         <div className={`${styles.chip} ${holding.totalGain >= 0 ? styles.up : styles.down}`}>
                             <span className={styles.chipLabel}>P&L</span>
-                            {holding.totalGain >= 0 ? '▲' : '▼'}{Math.abs(gainPct).toFixed(2)}%
+                            {holding.totalGain >= 0 ? '▲' : '▼'}{Math.abs(gainPct).toFixed(2)}% (₹{formatCurrency(Math.abs(holding.totalGain))})
                         </div>
                         <div className={`${styles.chip} ${holding.dayGain >= 0 ? styles.up : styles.down}`}>
                             <span className={styles.chipLabel}>Day</span>

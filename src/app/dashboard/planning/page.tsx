@@ -7,7 +7,7 @@ import NumberInput from '@/components/NumberInput';
 
 export default function PlanningPage() {
     const { profile } = useProfile();
-    const [userProfile, setUserProfile] = useState({ age: 30, monthlyIncome: 0, monthlyExpenses: 0, insuranceCover: 0 });
+    const [userProfile, setUserProfile] = useState({ dob: '', monthlyIncome: 0, monthlyExpenses: 0, insuranceCover: 0 });
     const [liabilities, setLiabilities] = useState<any[]>([]);
     const [goals, setGoals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -34,7 +34,14 @@ export default function PlanningPage() {
         const liabData = await liabRes.json();
         const goalData = await goalRes.json();
 
-        setUserProfile(profData.profile || { age: 30, monthlyIncome: 0, monthlyExpenses: 0, insuranceCover: 0 });
+        const p = profData.profile || {};
+        setUserProfile({
+            ...p,
+            dob: p.dob ? new Date(p.dob).toISOString().split('T')[0] : '',
+            monthlyIncome: p.monthlyIncome || 0,
+            monthlyExpenses: p.monthlyExpenses || 0,
+            insuranceCover: p.insuranceCover || 0
+        });
         setLiabilities(liabData.liabilities || []);
         setGoals(goalData.goals || []);
         setLoading(false);
@@ -99,8 +106,8 @@ export default function PlanningPage() {
                     </div>
                     <div className={styles.grid}>
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>Age</label>
-                            <NumberInput className={styles.input} value={userProfile.age} onChange={val => setUserProfile({ ...userProfile, age: val })} />
+                            <label className={styles.label}>Date of Birth</label>
+                            <input type="date" className={styles.input} value={userProfile.dob} onChange={e => setUserProfile({ ...userProfile, dob: e.target.value })} />
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Monthly Income (₹)</label>

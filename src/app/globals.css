@@ -165,7 +165,9 @@ body {
 
 .tab-group {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 2px;
   background: #0d1926;
   border: 1px solid rgba(233, 231, 224, 0.12);

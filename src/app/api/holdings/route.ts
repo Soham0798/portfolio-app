@@ -157,11 +157,20 @@ export async function GET(req: NextRequest) {
     }
 
     const resolvedProfile = userProfile ? userProfile : {
-        age: 30,
+        dob: null,
         monthlyIncome: 0,
         monthlyExpenses: 0,
         insuranceCover: 0
     } as any;
+
+    let age = 30;
+    if (resolvedProfile.dob) {
+        const dob = new Date(resolvedProfile.dob);
+        const ageDifMs = Date.now() - dob.getTime();
+        const ageDate = new Date(ageDifMs);
+        age = Math.abs(ageDate.getUTCFullYear() - 1970);
+    }
+    resolvedProfile.age = age;
 
     const PortfolioData = {
         assets: engineAssets,
@@ -183,6 +192,8 @@ export async function GET(req: NextRequest) {
         healthScore,
         insights,
         summary: {
+            ...resolvedProfile.toObject ? resolvedProfile.toObject() : resolvedProfile,
+            age,
             totalValue,
             totalInvested,
             totalGain,
@@ -192,7 +203,7 @@ export async function GET(req: NextRequest) {
             marketValue,
             manualValue,
             netWorth: totalValue - liabilities.reduce((sum, l) => sum + (l.outstanding || 0), 0),
-            isProfileConfigured: !!userProfile,
+            isProfileConfigured: !!resolvedProfile.dob,
             userProfile: resolvedProfile
         },
     });

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useProfile } from '@/components/ProfileContext';
 import styles from './transactions.module.css';
 import layoutStyles from '../layout.module.css';
+import Select from '@/components/Select';
 
 interface Transaction {
     _id: string;
@@ -315,15 +316,15 @@ export default function TransactionsPage() {
                             <div className={styles.row}>
                                 <div className={styles.field}>
                                     <label className="label">Profile</label>
-                                    <select
-                                        className="input"
+                                    <Select
                                         value={form.profile}
-                                        onChange={(e) => setForm({ ...form, profile: e.target.value })}
-                                    >
-                                        <option value="sameer">Sameer</option>
-                                        <option value="snehal">Snehal</option>
-                                        <option value="soham">Soham</option>
-                                    </select>
+                                        onChange={(value) => setForm({ ...form, profile: value })}
+                                        options={[
+                                            { value: 'sameer', label: 'Sameer' },
+                                            { value: 'snehal', label: 'Snehal' },
+                                            { value: 'soham', label: 'Soham' }
+                                        ]}
+                                    />
                                 </div>
                                 <div className={styles.field}>
                                     <label className="label">Type</label>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './import.module.css';
+import Select from '@/components/Select';
 
 export default function ImportPage() {
     const [file, setFile] = useState<File | null>(null);
@@ -75,11 +76,15 @@ export default function ImportPage() {
                         </div>
                         <div className={styles.field}>
                             <label className="label">Profile</label>
-                            <select className="input" value={profile} onChange={(e) => setProfile(e.target.value)}>
-                                <option value="sameer">Sameer</option>
-                                <option value="snehal">Snehal</option>
-                                <option value="soham">Soham</option>
-                            </select>
+                            <Select 
+                                value={profile} 
+                                onChange={(value) => setProfile(value)}
+                                options={[
+                                    { value: 'sameer', label: 'Sameer' },
+                                    { value: 'snehal', label: 'Snehal' },
+                                    { value: 'soham', label: 'Soham' }
+                                ]}
+                            />
                         </div>
                     </div>
 

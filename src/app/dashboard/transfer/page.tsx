@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../import/import.module.css';
+import Select from '@/components/Select';
 import layoutStyles from '../layout.module.css';
 
 export default function TransferPage() {
@@ -79,11 +80,15 @@ export default function TransferPage() {
                     <div className={styles.row}>
                         <div className={styles.field}>
                             <label className="label">From Profile</label>
-                            <select className="input" value={fromProfile} onChange={(e) => setFromProfile(e.target.value)}>
-                                <option value="sameer">Sameer</option>
-                                <option value="snehal">Snehal</option>
-                                <option value="soham">Soham</option>
-                            </select>
+                            <Select 
+                                value={fromProfile} 
+                                onChange={(value) => setFromProfile(value)}
+                                options={[
+                                    { value: 'sameer', label: 'Sameer' },
+                                    { value: 'snehal', label: 'Snehal' },
+                                    { value: 'soham', label: 'Soham' }
+                                ]}
+                            />
                         </div>
                         
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '24px' }}>
@@ -94,11 +99,15 @@ export default function TransferPage() {
 
                         <div className={styles.field}>
                             <label className="label">To Profile</label>
-                            <select className="input" value={toProfile} onChange={(e) => setToProfile(e.target.value)}>
-                                <option value="sameer">Sameer</option>
-                                <option value="snehal">Snehal</option>
-                                <option value="soham">Soham</option>
-                            </select>
+                            <Select 
+                                value={toProfile} 
+                                onChange={(value) => setToProfile(value)}
+                                options={[
+                                    { value: 'sameer', label: 'Sameer' },
+                                    { value: 'snehal', label: 'Snehal' },
+                                    { value: 'soham', label: 'Soham' }
+                                ]}
+                            />
                         </div>
                     </div>
 

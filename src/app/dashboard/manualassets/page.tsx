@@ -5,6 +5,7 @@ import { useProfile } from '@/components/ProfileContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './manualassets.module.css';
 import layoutStyles from '../layout.module.css';
+import Select from '@/components/Select';
 
 interface ManualAsset {
     _id: string;
@@ -27,7 +28,7 @@ interface SearchResult {
     type: string;
 }
 
-const MANUAL_TYPES = ['FD', 'EPF', 'PPF', 'ULIP', 'OTHER'];
+const MANUAL_TYPES = ['FD', 'EPF', 'PPF', 'NPS', 'SGB', 'ULIP'];
 const MARKET_TYPES = ['STOCK', 'MUTUAL_FUND'];
 
 export default function AssetsPage() {
@@ -398,11 +399,12 @@ export default function AssetsPage() {
 
                         {/* Asset Type Tabs */}
                         {!editingId && (
-                            <div className="tab-group" style={{ marginBottom: '20px' }}>
-                                {['STOCK', 'MUTUAL_FUND', 'FD', 'EPF', 'PPF', 'ULIP', 'OTHER'].map((t) => (
+                            <div className="tab-group" style={{ marginBottom: '20px', width: '100%', display: 'flex' }}>
+                                {['STOCK', 'MUTUAL_FUND', ...MANUAL_TYPES].map((t) => (
                                     <button
                                         key={t}
                                         type="button"
+                                        style={{ flex: 1, justifyContent: 'center' }}
                                         className={`tab ${form.assetType === t ? 'active' : ''}`}
                                         onClick={() => {
                                             setForm({ ...form, assetType: t });
@@ -466,19 +468,21 @@ export default function AssetsPage() {
                                     </div>
                                 )}
 
-                                <div className={styles.row}>
-                                    <div className={styles.field}>
-                                        <label className="label">Profile</label>
-                                        <select className="input" value={marketForm.profile} onChange={(e) => setMarketForm({ ...marketForm, profile: e.target.value })}>
-                                            <option value="sameer">Sameer</option>
-                                            <option value="snehal">Snehal</option>
-                                            <option value="soham">Soham</option>
-                                        </select>
-                                    </div>
-                                    <div className={styles.field}>
-                                        <label className="label">Date</label>
-                                        <input type="date" className="input" value={marketForm.date} onChange={(e) => setMarketForm({ ...marketForm, date: e.target.value })} required />
-                                    </div>
+                                <div className={styles.field}>
+                                    <label className="label">Profile</label>
+                                    <Select 
+                                        value={marketForm.profile} 
+                                        onChange={(value) => setMarketForm({ ...marketForm, profile: value })}
+                                        options={[
+                                            { value: 'sameer', label: 'Sameer' },
+                                            { value: 'snehal', label: 'Snehal' },
+                                            { value: 'soham', label: 'Soham' }
+                                        ]}
+                                    />
+                                </div>
+                                <div className={styles.field}>
+                                    <label className="label">Date</label>
+                                    <input type="date" className="input" value={marketForm.date} onChange={(e) => setMarketForm({ ...marketForm, date: e.target.value })} required />
                                 </div>
 
                                 <div className={styles.row}>
@@ -507,27 +511,17 @@ export default function AssetsPage() {
                         ) : (
                             /* ========== MANUAL ASSET FORM (FD/EPF/etc) ========== */
                             <form onSubmit={handleManualSubmit} className={styles.form}>
-                                <div className={styles.row}>
-                                    <div className={styles.field}>
-                                        <label className="label">Profile</label>
-                                        <select className="input" value={form.profile} onChange={(e) => setForm({ ...form, profile: e.target.value })}>
-                                            <option value="sameer">Sameer</option>
-                                            <option value="snehal">Snehal</option>
-                                            <option value="soham">Soham</option>
-                                        </select>
-                                    </div>
-                                    {!editingId && (
-                                        <div className={styles.field}>
-                                            <label className="label">Type</label>
-                                            <select className="input" value={form.assetType} onChange={(e) => setForm({ ...form, assetType: e.target.value })}>
-                                                <option value="FD">Fixed Deposit</option>
-                                                <option value="EPF">EPF</option>
-                                                <option value="PPF">PPF</option>
-                                                <option value="ULIP">ULIP</option>
-                                                <option value="OTHER">Other</option>
-                                            </select>
-                                        </div>
-                                    )}
+                                <div className={styles.field}>
+                                    <label className="label">Profile</label>
+                                    <Select 
+                                        value={form.profile} 
+                                        onChange={(value) => setForm({ ...form, profile: value })}
+                                        options={[
+                                            { value: 'sameer', label: 'Sameer' },
+                                            { value: 'snehal', label: 'Snehal' },
+                                            { value: 'soham', label: 'Soham' }
+                                        ]}
+                                    />
                                 </div>
 
                                 <div className={styles.field}>

@@ -2,7 +2,7 @@ import mongoose, { Schema, Document, Types } from "mongoose";
 import { PROFILES } from "./Transaction";  // reuse the same profiles
 
 export const MANUAL_ASSET_TYPES = [
-    'FD', 'EPF', 'ULIP', 'PPF', 'OTHER'
+    'FD', 'EPF', 'ULIP', 'PPF', 'NPS', 'SGB', 'OTHER'
 ] as const;
 
 export type ManualAssetType = typeof MANUAL_ASSET_TYPES[number];

@@ -2,7 +2,7 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export interface IUserProfile extends Document {
     userId: mongoose.Types.ObjectId;
-    age: number;
+    dob: Date | null;
     monthlyIncome: number;
     monthlyExpenses: number;
     insuranceCover: number;
@@ -12,7 +12,7 @@ export interface IUserProfile extends Document {
 const UserProfileSchema = new Schema<IUserProfile>(
     {
         userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-        age: { type: Number, default: 30 },
+        dob: { type: Date, default: null },
         monthlyIncome: { type: Number, default: 0 },
         monthlyExpenses: { type: Number, default: 0 },
         insuranceCover: { type: Number, default: 0 },
