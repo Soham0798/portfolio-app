@@ -44,47 +44,46 @@ export default function Select({ value, onChange, options, className = '' }: Sel
     }, []);
 
     return (
-        <div 
-            ref={containerRef} 
+        <div
+            ref={containerRef}
             className={`select-wrap ${className}`}
             style={{ position: 'relative', width: '100%' }}
         >
-            <div 
+            {/* Trigger button */}
+            <div
                 style={{
                     width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '12px 16px', background: 'var(--bg-secondary, #11172a)',
-                    border: isOpen ? '1px solid #4d8dff' : '1px solid var(--border-subtle, #1b2440)',
-                    borderRadius: '12px', color: 'var(--text-primary, #e6ebf5)',
+                    padding: '12px 16px',
+                    background: 'var(--bg-card)',
+                    border: isOpen ? '1px solid var(--accent-primary, #4d8dff)' : '1px solid var(--border-subtle)',
+                    borderRadius: '12px',
+                    color: 'var(--text-primary)',
                     fontSize: '15px', fontWeight: 500, cursor: 'pointer',
-                    boxShadow: '0 8px 20px -8px rgba(0,0,0,0.6)',
-                    transition: 'box-shadow 0.2s ease, border-color 0.2s ease'
+                    boxShadow: 'var(--card-shadow, 0 2px 8px rgba(0,0,0,0.07))',
+                    transition: 'border-color 0.2s ease',
                 }}
                 onClick={() => setIsOpen(!isOpen)}
-                onMouseEnter={(e) => {
-                    // removed highlight
-                }}
-                onMouseLeave={(e) => {
-                    // removed highlight
-                }}
             >
                 <span style={{ display: 'flex', alignItems: 'center' }}>
                     {selectedOption && (
                         <span style={{
                             width: '22px', height: '22px', borderRadius: '50%', display: 'inline-flex',
                             alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700,
-                            marginRight: '10px', color: '#061021', flexShrink: 0, background: triggerColor
+                            marginRight: '10px', color: '#fff', flexShrink: 0, background: triggerColor,
                         }}>
                             {triggerLabel[0].toUpperCase()}
                         </span>
                     )}
                     {triggerLabel}
                 </span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4d8dff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
-                     style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease', flexShrink: 0 }}>
-                    <polyline points="6 9 12 15 18 9"></polyline>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="var(--accent-primary, #4d8dff)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease', flexShrink: 0 }}>
+                    <polyline points="6 9 12 15 18 9" />
                 </svg>
             </div>
 
+            {/* Dropdown */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -94,9 +93,11 @@ export default function Select({ value, onChange, options, className = '' }: Sel
                         transition={{ duration: 0.16, ease: 'easeOut' }}
                         style={{
                             position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '8px',
-                            background: '#141b32', border: '1px solid #23304f', borderRadius: '12px',
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: '12px',
                             zIndex: 100, overflow: 'hidden', transformOrigin: 'top',
-                            boxShadow: '0 16px 40px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(77,141,255,0.06)'
+                            boxShadow: 'var(--card-shadow, 0 8px 32px rgba(0,0,0,0.12))',
                         }}
                     >
                         {options.map((option, index) => {
@@ -105,30 +106,27 @@ export default function Select({ value, onChange, options, className = '' }: Sel
                             return (
                                 <div
                                     key={option.value}
-                                    onClick={() => {
-                                        onChange(option.value);
-                                        setIsOpen(false);
-                                    }}
+                                    onClick={() => { onChange(option.value); setIsOpen(false); }}
                                     style={{
                                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                         padding: '12px 16px', fontSize: '15px', cursor: 'pointer',
-                                        borderBottom: index < options.length - 1 ? '1px solid #1b2440' : 'none',
-                                        borderLeft: isSelected ? '3px solid #4d8dff' : '3px solid transparent',
-                                        background: isSelected ? 'rgba(77, 141, 255, 0.14)' : 'transparent',
-                                        color: isSelected ? '#e6ebf5' : '#7c88a6',
+                                        borderBottom: index < options.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                                        borderLeft: isSelected ? '3px solid var(--accent-primary, #4d8dff)' : '3px solid transparent',
+                                        background: isSelected ? 'rgba(77,141,255,0.10)' : 'transparent',
+                                        color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
                                         fontWeight: isSelected ? 600 : 400,
-                                        transition: 'background 0.15s ease, color 0.15s ease'
+                                        transition: 'background 0.15s ease, color 0.15s ease',
                                     }}
                                     onMouseEnter={(e) => {
                                         if (!isSelected) {
-                                            e.currentTarget.style.background = 'rgba(77, 141, 255, 0.08)';
-                                            e.currentTarget.style.color = '#e6ebf5';
+                                            e.currentTarget.style.background = 'rgba(77,141,255,0.07)';
+                                            e.currentTarget.style.color = 'var(--text-primary)';
                                         }
                                     }}
                                     onMouseLeave={(e) => {
                                         if (!isSelected) {
                                             e.currentTarget.style.background = 'transparent';
-                                            e.currentTarget.style.color = '#7c88a6';
+                                            e.currentTarget.style.color = 'var(--text-secondary)';
                                         }
                                     }}
                                 >
@@ -136,15 +134,16 @@ export default function Select({ value, onChange, options, className = '' }: Sel
                                         <span style={{
                                             width: '22px', height: '22px', borderRadius: '50%', display: 'inline-flex',
                                             alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700,
-                                            marginRight: '10px', color: '#061021', flexShrink: 0, background: optionColor
+                                            marginRight: '10px', color: '#fff', flexShrink: 0, background: optionColor,
                                         }}>
                                             {option.label[0].toUpperCase()}
                                         </span>
                                         {option.label}
                                     </span>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4d8dff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
-                                         style={{ opacity: isSelected ? 1 : 0, transition: 'opacity 0.15s ease' }}>
-                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                        stroke="var(--accent-primary, #4d8dff)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                                        style={{ opacity: isSelected ? 1 : 0, transition: 'opacity 0.15s ease' }}>
+                                        <polyline points="20 6 9 17 4 12" />
                                     </svg>
                                 </div>
                             );

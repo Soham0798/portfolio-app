@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import GaugeMeter from '@/components/GaugeMeter';
 import { useProfile } from '@/components/ProfileContext';
 import styles from './dashboard.module.css';
 import Link from 'next/link';
@@ -274,13 +275,7 @@ export default function DashboardPage() {
                         </div>
                         
                         <div className={styles.heroBadge}>
-                            <div className={styles.stamp}>
-                                <div className={styles.score}>{Math.round(overallScore)}</div>
-                                <div className={styles.of}>/ 100</div>
-                                <div className={styles.label}>
-                                    {overallScore >= 80 ? 'Excellent' : overallScore >= 60 ? 'Steady' : 'Needs Work'}
-                                </div>
-                            </div>
+                            <GaugeMeter score={Math.round(overallScore)} />
                             <div className={styles.badgeCaption}>Portfolio health score — 8 factors combined</div>
                             {profile !== 'combined' && (
                                 <div className={styles.ageControl}>

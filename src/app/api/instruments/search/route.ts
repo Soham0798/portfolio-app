@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchAllMutualFunds } from '@/lib/prices/amfi';
-
+import { searchSGB } from '@/lib/prices/sgb';
 
 export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
@@ -16,15 +16,26 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        if (type === 'STOCK' || type === 'SGB') {
+        if (type === 'SGB') {
+            const results = searchSGB(query).map(s => ({
+                symbol: s.symbol,
+                name: `${s.name} (Matures ${new Date(s.maturityDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}, ${s.coupon}% p.a.)`,
+                exchange: 'NSE',
+                type: 'SGB',
+                maturityDate: s.maturityDate,
+                coupon: s.coupon,
+            }));
+            return NextResponse.json({ results });
+        }
+
+        if (type === 'STOCK') {
             const res = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`, {
-                next: { revalidate: 3600 } // Cache for 1 hour
+                next: { revalidate: 3600 }
             });
             const searchResults = await res.json();
 
             const quotes = (searchResults.quotes || [])
                 .filter((q: any) => {
-                    // Only show NSE/BSE Indian stocks + common exchanges
                     const exchange = (q.exchange || '').toUpperCase();
                     const symbol = (q.symbol || '');
                     return (
@@ -41,7 +52,7 @@ export async function GET(req: NextRequest) {
                     symbol: q.symbol,
                     name: q.shortname || q.longname || q.symbol,
                     exchange: q.exchange || '',
-                    type: type, // Map to either STOCK or SGB based on the request
+                    type: 'STOCK',
                 }));
 
             return NextResponse.json({ results: quotes });

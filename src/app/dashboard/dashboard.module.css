@@ -140,51 +140,72 @@
   align-self: center;
   text-align: center;
   position: relative;
-  width: 150px;
+  width: 190px;
+  flex-shrink: 0;
 }
 
-.stamp {
-  width: 126px;
-  height: 126px;
-  border-radius: 50%;
-  border: 2px solid var(--accent-primary);
-  position: relative;
+.scoreWrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  transform: rotate(-8deg);
-  background: repeating-radial-gradient(circle at center, rgba(96, 165, 250, 0.05) 0 2px, transparent 2px 4px);
 }
 
-.stamp::before {
-  content: '';
+.scoreDonut {
+  width: 150px;
+  height: 75px;
+  border-radius: 150px 150px 0 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.scoreDonut::before {
+  content: "";
   position: absolute;
-  inset: 6px;
-  border: 1px dashed rgba(96, 165, 250, 0.55);
-  border-radius: 50%;
+  top: 15px;
+  left: 15px;
+  right: 15px;
+  bottom: 0;
+  background: var(--bg-card);
+  border-radius: 135px 135px 0 0;
+  z-index: 1;
 }
 
-.stamp .score {
+.scoreDonutContent {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.scoreValue {
   font-family: 'DM Serif Display', serif;
-  font-size: 34px;
-  color: var(--accent-primary);
+  font-size: 38px;
+  line-height: 1;
+  color: var(--text-primary);
 }
 
-.stamp .of {
+.scoreOut {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
-  color: var(--text-secondary);
-  letter-spacing: .08em;
-}
-
-.stamp .label {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
-  letter-spacing: .14em;
+  font-size: 10px;
+  color: var(--text-muted);
   text-transform: uppercase;
-  color: var(--text-secondary);
-  margin-top: 2px;
+  margin-top: 6px;
+  letter-spacing: 0.05em;
+}
+
+.scoreRanking {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .badgeCaption {

@@ -424,12 +424,12 @@ export default function AssetsPage() {
                             <form onSubmit={handleMarketSubmit} className={styles.form}>
                                 <div className={styles.field} ref={searchRef}>
                                     <label className="label">
-                                        Search {form.assetType === 'STOCK' ? 'Stock' : form.assetType === 'MUTUAL_FUND' ? 'Mutual Fund' : form.assetType === 'NPS' ? 'NPS Scheme' : 'SGB'}
+                                        Search {form.assetType === 'STOCK' ? 'Stock' : form.assetType === 'MUTUAL_FUND' ? 'Mutual Fund' : form.assetType === 'NPS' ? 'NPS Scheme' : 'Sovereign Gold Bond Series'}
                                     </label>
                                     <input
                                         type="text"
                                         className="input"
-                                        placeholder={form.assetType === 'STOCK' ? 'e.g. Reliance, HDFC Bank...' : form.assetType === 'MUTUAL_FUND' ? 'e.g. Parag Parikh, Motilal Oswal...' : form.assetType === 'NPS' ? 'e.g. SBI Pension Fund...' : 'e.g. SGBAUG28...'}
+                                        placeholder={form.assetType === 'STOCK' ? 'e.g. Reliance, HDFC Bank...' : form.assetType === 'MUTUAL_FUND' ? 'e.g. Parag Parikh, Motilal Oswal...' : form.assetType === 'NPS' ? 'e.g. SBI Pension Fund...' : 'e.g. SGB 2020-21, Aug 2028, Series IV...'}
                                         value={searchQuery}
                                         onChange={(e) => handleSearchInput(e.target.value)}
                                         autoComplete="off"

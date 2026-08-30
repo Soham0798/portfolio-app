@@ -49,10 +49,11 @@ export default function HoldingsPage() {
     const [summary, setSummary] = useState<Summary | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const [activeTab, setActiveTab] = useState<'stocks' | 'funds' | 'manual'>('stocks');
+    const [activeTab, setActiveTab] = useState<'stocks' | 'funds' | 'sgb' | 'manual'>('stocks');
     const [sortPrefs, setSortPrefs] = useState<Record<string, 'value' | 'pnl' | 'day'>>({
         stocks: 'value',
         funds: 'value',
+        sgb: 'value',
         manual: 'value'
     });
 
@@ -78,14 +79,18 @@ export default function HoldingsPage() {
     const formatCurrency = (n: number) => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n || 0);
 
     const stocks = useMemo(() => holdings.filter(h => h.assetType === 'STOCK' || h.assetType === 'ETF'), [holdings]);
-    const funds = useMemo(() => holdings.filter(h => h.assetType !== 'STOCK' && h.assetType !== 'ETF'), [holdings]);
-    
+    const funds = useMemo(() => holdings.filter(h => h.assetType === 'MUTUAL_FUND' || h.assetType === 'NPS'), [holdings]);
+    const sgbs = useMemo(() => holdings.filter(h => h.assetType === 'SGB'), [holdings]);
+
     const stocksValue = stocks.reduce((s, h) => s + h.currentValue, 0);
     const stocksPnl = stocks.reduce((s, h) => s + h.totalGain, 0);
     
     const fundsValue = funds.reduce((s, h) => s + h.currentValue, 0);
     const fundsPnl = funds.reduce((s, h) => s + h.totalGain, 0);
-    
+
+    const sgbsValue = sgbs.reduce((s, h) => s + h.currentValue, 0);
+    const sgbsPnl = sgbs.reduce((s, h) => s + h.totalGain, 0);
+
     const manualValue = manualAssets.reduce((s, a) => s + (a.currentValue || 0), 0);
     const manualInvested = manualAssets.reduce((s, a) => s + (a.totalInvested || 0), 0);
     const manualPnl = manualValue - manualInvested;
@@ -109,6 +114,14 @@ export default function HoldingsPage() {
             return b.currentValue - a.currentValue;
         });
     }, [funds, sortPrefs.funds]);
+
+    const sortedSGBs = useMemo(() => {
+        return [...sgbs].sort((a, b) => {
+            if (sortPrefs.sgb === 'pnl') return b.totalGain - a.totalGain;
+            if (sortPrefs.sgb === 'day') return b.dayGain - a.dayGain;
+            return b.currentValue - a.currentValue;
+        });
+    }, [sgbs, sortPrefs.sgb]);
 
     const sortedManual = useMemo(() => {
         return [...manualAssets].sort((a, b) => {
@@ -219,6 +232,20 @@ export default function HoldingsPage() {
                         </div>
                     </div>
 
+                    <div className={`${styles.catTab} ${activeTab === 'sgb' ? styles.active : ''}`} onClick={() => setActiveTab('sgb')} style={{ '--cat-color': '#F0A500' } as any}>
+                        <div className={styles.catTabTop}>
+                            <div className={styles.catIcon} style={{ background: 'rgba(240,165,0,0.15)' }}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#F0A500" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 6v6l4 2" /><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" /></svg>
+                            </div>
+                            <div className={styles.catName}>Gold Bonds</div>
+                            <div className={styles.catCount}>{sgbs.length}</div>
+                        </div>
+                        <div className={styles.catValue}>{formatCurrency(sgbsValue)}</div>
+                        <div className={`${styles.catSub} ${sgbsPnl >= 0 ? styles.up : styles.down}`}>
+                            {sgbsPnl >= 0 ? '▲' : '▼'} {sgbsPnl >= 0 ? '+' : '-'}{formatCurrency(Math.abs(sgbsPnl))}
+                        </div>
+                    </div>
+
                     <div className={`${styles.catTab} ${activeTab === 'manual' ? styles.active : ''}`} onClick={() => setActiveTab('manual')} style={{ '--cat-color': '#D0A24C' } as any}>
                         <div className={styles.catTabTop}>
                             <div className={styles.catIcon} style={{ background: 'rgba(208,162,76,0.15)' }}>
@@ -325,6 +352,50 @@ export default function HoldingsPage() {
                         {sortedFunds.length === 0 && (
                             <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--paper-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', margin: '16px', border: '1px dashed var(--hairline)' }}>
                                 No mutual funds found
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
+                )}
+
+                {/* ===== Gold Bonds (SGB) section ===== */}
+                {activeTab === 'sgb' && (
+                <motion.div
+                    key="sgb"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+                    className={styles.sectionCard}
+                >
+                    <div className={styles.sectionHead}>
+                        <div className={styles.sectionHeadLeft}>
+                            <div className={styles.sectionTitle}>Sovereign Gold Bonds</div>
+                            <div className={styles.sectionTotals}>
+                                <span>{formatCurrency(sgbsValue)}</span>
+                                <span className={sgbsPnl >= 0 ? styles.pnl : styles.pnlLoss}>
+                                    {sgbsPnl >= 0 ? '+' : ''}{formatCurrency(sgbsPnl)}
+                                </span>
+                            </div>
+                        </div>
+                        <div className={styles.sortPills}>
+                            <div className={`${styles.sortPill} ${sortPrefs.sgb === 'value' ? styles.active : ''}`} onClick={() => handleSort('sgb', 'value')}>
+                                {sortPrefs.sgb === 'value' && <motion.div layoutId="sortThumb-sgb" className={styles.sortThumb} transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />}
+                                <span style={{position:'relative', zIndex: 1}}>By Value</span>
+                            </div>
+                            <div className={`${styles.sortPill} ${sortPrefs.sgb === 'pnl' ? styles.active : ''}`} onClick={() => handleSort('sgb', 'pnl')}>
+                                {sortPrefs.sgb === 'pnl' && <motion.div layoutId="sortThumb-sgb" className={styles.sortThumb} transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />}
+                                <span style={{position:'relative', zIndex: 1}}>By P&L</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        {sortedSGBs.map((h, i) => (
+                            <SGBRow key={h.instrumentId} holding={h} formatCurrency={formatCurrency} />
+                        ))}
+                        {sortedSGBs.length === 0 && (
+                            <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--paper-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', margin: '16px', border: '1px dashed var(--hairline)' }}>
+                                No Sovereign Gold Bonds found. Add one via <Link href="/dashboard/manualassets" style={{ color: 'var(--accent-primary)' }}>Assets</Link>.
                             </div>
                         )}
                     </div>
@@ -454,6 +525,55 @@ function HoldingRow({ holding, badgeColor, formatCurrency }: { holding: Holding,
                     <div className={styles.detailItem}>
                         <div className={styles.detailLabel}>CMP</div>
                         <div className={styles.detailFigure}>{formatCurrency(holding.currentPrice)}</div>
+                    </div>
+                    <div className={styles.holdingChips}>
+                        <div className={`${styles.chip} ${holding.totalGain >= 0 ? styles.up : styles.down}`}>
+                            <span className={styles.chipLabel}>P&L</span>
+                            {holding.totalGain >= 0 ? '▲' : '▼'}{Math.abs(gainPct).toFixed(2)}% (₹{formatCurrency(Math.abs(holding.totalGain))})
+                        </div>
+                        <div className={`${styles.chip} ${holding.dayGain >= 0 ? styles.up : styles.down}`}>
+                            <span className={styles.chipLabel}>Day</span>
+                            {holding.dayGain >= 0 ? '▲' : '▼'}{formatCurrency(Math.abs(holding.dayGain))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+function SGBRow({ holding, formatCurrency }: { holding: Holding, formatCurrency: (n: number) => string }) {
+    const gainPct = holding.totalInvested ? (holding.totalGain / holding.totalInvested) * 100 : 0;
+    // For SGB, qty = grams of gold, currentPrice = gold price per gram
+    const gramsHeld = holding.currentQty;
+    const goldPricePerGram = holding.currentPrice;
+
+    return (
+        <motion.div layout initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }} className={styles.holding}>
+            <div className={styles.badge} style={{ background: 'linear-gradient(135deg, #F0A500 0%, #c77d00 100%)' }}>SG</div>
+            <div className={styles.holdingMain}>
+                <div className={styles.holdingTop}>
+                    <div>
+                        <div className={styles.holdingName}>{holding.name}</div>
+                        <div className={styles.holdingFolio} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <span style={{ background: 'rgba(240,165,0,0.15)', color: '#F0A500', padding: '1px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 600 }}>SGB</span>
+                            {holding.tickerSymbol}
+                        </div>
+                    </div>
+                    <div className={styles.holdingCmp}>{formatCurrency(holding.currentValue)}</div>
+                </div>
+                <div className={styles.holdingDetail}>
+                    <div className={styles.detailItem}>
+                        <div className={styles.detailLabel}>Units (g)</div>
+                        <div className={styles.detailFigure}>{gramsHeld.toFixed(2)} g</div>
+                    </div>
+                    <div className={styles.detailItem}>
+                        <div className={styles.detailLabel}>Avg Cost</div>
+                        <div className={styles.detailFigure}>₹{formatCurrency(holding.avgBuyPrice)}/g</div>
+                    </div>
+                    <div className={styles.detailItem}>
+                        <div className={styles.detailLabel}>Gold Rate</div>
+                        <div className={styles.detailFigure}>₹{formatCurrency(goldPricePerGram)}/g</div>
                     </div>
                     <div className={styles.holdingChips}>
                         <div className={`${styles.chip} ${holding.totalGain >= 0 ? styles.up : styles.down}`}>

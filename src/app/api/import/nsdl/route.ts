@@ -5,7 +5,42 @@ import Transaction from '@/models/Transaction';
 import Instrument from '@/models/Instrument';
 import ManualAsset from '@/models/ManualAssets';
 import PDFParser from 'pdf2json';
-import { getLiveStockPrice, getLiveMFDetails, getLiveGoldPricePerGram } from '@/lib/marketData';
+import { fetchYahooPrice } from '@/lib/prices/yahoo';
+
+async function getLiveGoldPricePerGram(): Promise<number | null> {
+    try {
+        const quote = await fetchYahooPrice('XAUINR=X');
+        if (quote && quote.currentPrice) {
+            return quote.currentPrice / 31.1034768;
+        }
+    } catch {}
+    return null;
+}
+
+let amfiNavCache: Record<string, { nav: number; name: string }> | null = null;
+let amfiCacheTime = 0;
+async function getLiveMFDetails(isin: string): Promise<{ nav: number; name: string } | null> {
+    try {
+        if (!amfiNavCache || Date.now() - amfiCacheTime > 12 * 3600 * 1000) {
+            const res = await fetch('https://www.amfiindia.com/spages/NAVAll.txt');
+            const text = await res.text();
+            amfiNavCache = {};
+            for (const line of text.split('\n')) {
+                const parts = line.split(';');
+                if (parts.length >= 5 && parts[0].match(/^[A-Z0-9]{12}$/)) {
+                    const nav = parseFloat(parts[4].trim());
+                    if (parts[1].trim() && !isNaN(nav)) {
+                        amfiNavCache[parts[1].trim()] = { nav, name: parts[3].trim() };
+                    }
+                }
+            }
+            amfiCacheTime = Date.now();
+        }
+        return amfiNavCache[isin] || null;
+    } catch {
+        return null;
+    }
+}
 
 // Ticker mappings for common NSDL CAS names
 const tickerMap: Record<string, string> = {
@@ -93,12 +128,24 @@ export async function POST(req: NextRequest) {
         // Pre-import Cleanup: Ensure idempotent imports by clearing previous CAS imports for this profile.
         await Transaction.deleteMany({ userId: user.userId, profile, notes: 'Imported from NSDL CAS' });
         await ManualAsset.deleteMany({
+            userId: user.userId,
             profile,
             $or: [
                 { name: { $regex: /Sovereign Gold Bond/i } },
                 { name: { $regex: /^NPS/i } }
             ]
         });
+        // Clean up SGB instruments created by a previous import for this user
+        const oldSgbInstruments = await Instrument.find({ userId: user.userId, assetType: 'SGB' });
+        const oldSgbIds = oldSgbInstruments.map(i => i._id);
+        if (oldSgbIds.length > 0) {
+            await Transaction.deleteMany({ userId: user.userId, profile, instrumentId: { $in: oldSgbIds }, notes: 'Imported from NSDL CAS' });
+            // Only delete the instrument if no transactions remain for it
+            for (const inst of oldSgbInstruments) {
+                const remaining = await Transaction.countDocuments({ userId: user.userId, instrumentId: inst._id });
+                if (remaining === 0) await inst.deleteOne();
+            }
+        }
 
         // ============================================================
         // PASS 1: Find section boundaries
@@ -218,8 +265,13 @@ export async function POST(req: NextRequest) {
                     tickerSymbol = `${name.replace(/\s+/g, '').toUpperCase()}.NS`;
                 }
 
-                const livePrice = await getLiveStockPrice(tickerSymbol);
-                const finalPrice = livePrice || marketPrice;
+                let finalPrice = marketPrice;
+                if (!finalPrice || finalPrice === 0) {
+                    const priceRes = await fetchYahooPrice(tickerSymbol);
+                    if (priceRes && priceRes.currentPrice) {
+                        finalPrice = priceRes.currentPrice;
+                    }
+                }
 
                 let instrument = await Instrument.findOne({
                     userId: user.userId,
@@ -414,22 +466,70 @@ export async function POST(req: NextRequest) {
 
                 if (isSgb) {
                     try {
-                        let finalValue = totalValue;
-                        const goldRate = await getLiveGoldPricePerGram();
-                        if (goldRate && goldRate > 0) {
-                            finalValue = units * goldRate;
+                        // Extract ISIN from start of the line (IN0...)
+                        const isinMatch = trimmed.match(/^(IN0\w+)/);
+                        const isin = isinMatch ? isinMatch[1] : null;
+
+                        // Derive a Yahoo ticker: NSDL lines contain the name like
+                        // "Government of India- SGB2024MAR08- IV 2.50%  08/03/2024"
+                        // We try to map the ISIN → ticker via Yahoo search.
+                        // If that fails we fall back to gold price × units.
+                        let tickerSymbol = isin ? `${isin}.NS` : `SGBGOLD.NS`;
+                        let sgbName = `Sovereign Gold Bond`;
+
+                        // Try to extract a human-readable name from surrounding lines
+                        for (let j = i - 1; j >= Math.max(0, i - 5); j--) {
+                            if (lines[j].includes('Government of India')) {
+                                sgbName = lines[j].trim().replace(/\s+/g, ' ').substring(0, 80);
+                                break;
+                            }
                         }
 
-                        await ManualAsset.create({
+                        // Fetch live gold price for current value
+                        let goldRate = await getLiveGoldPricePerGram();
+                        const faceValue = numbers[numbers.length - 2] || 0; // price per unit in CAS
+                        let currentPrice = goldRate && goldRate > 0 ? goldRate : (faceValue || 5000);
+                        let investedPerUnit = faceValue || currentPrice;
+                        let currentValue = units * currentPrice;
+
+                        // Upsert Instrument
+                        let instrument = await Instrument.findOne({
+                            tickerSymbol,
+                            userId: user.userId,
+                        });
+                        if (!instrument) {
+                            instrument = await Instrument.create({
+                                userId: user.userId,
+                                tickerSymbol,
+                                name: sgbName,
+                                assetType: 'SGB',
+                                exchange: 'NSE',
+                                currentPrice,
+                                previousClose: currentPrice,
+                                priceLastUpdated: new Date(),
+                            });
+                        } else {
+                            instrument.currentPrice = currentPrice;
+                            instrument.previousClose = currentPrice;
+                            instrument.priceLastUpdated = new Date();
+                            await instrument.save();
+                        }
+
+                        // Create BUY transaction
+                        await Transaction.create({
                             userId: user.userId,
                             profile,
-                            assetType: 'OTHER',
-                            name: `Sovereign Gold Bonds (${units}g)`,
-                            currentValue: finalValue,
-                            totalInvested: totalValue,
+                            instrumentId: instrument._id,
+                            type: 'BUY',
+                            date: new Date(),
+                            quantity: units,
+                            price: investedPerUnit,
+                            fees: 0,
+                            notes: 'Imported from NSDL CAS',
                         });
+
                         results.imported++;
-                        console.log(`SGB: value=${finalValue}, units=${units}`);
+                        console.log(`SGB: ticker=${tickerSymbol}, units=${units}, value=${currentValue}`);
                     } catch (err: any) {
                         results.errors.push(`Error importing SGB: ${err.message}`);
                         results.skipped++;

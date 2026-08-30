@@ -6,14 +6,10 @@ import ManualAsset from '@/models/ManualAssets';
 import DailySnapshot from '@/models/DailySnapshots';
 import { refreshAllPrices } from '@/lib/prices';
 
-function verifyCronSecret(req: NextRequest): boolean {
-    const authHeader = req.headers.get('authorization');
-    const secret = process.env.CRON_SECRET;
-    return authHeader === `Bearer ${secret}`;
-}
+
 
 export async function GET(req: NextRequest) {
-    if (!verifyCronSecret(req)) {
+    if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -23,11 +19,20 @@ export async function GET(req: NextRequest) {
     const action = searchParams.get('action');
 
     if (action === 'refresh-prices') {
-        return await refreshPrices();
+        const results = await refreshAllPrices();
+        return NextResponse.json({ message: 'Price refresh complete', results });
     }
 
     if (action === 'daily-snapshot') {
-        return await generateSnapshot();
+        const result = await generateSnapshotInternal();
+        if (!result) {
+            return NextResponse.json({ message: 'No transactions found, skipping snapshot' });
+        }
+        return NextResponse.json({
+            message: `Snapshot generated for ${result.dateString}`,
+            totalValue: result.totalValue,
+            totalDayGain: result.totalDayGain,
+        });
     }
 
     if (action === 'daily-run') {
@@ -50,22 +55,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }
 
-async function refreshPrices() {
-    const results = await refreshAllPrices();
-    return NextResponse.json({ message: 'Price refresh complete', results });
-}
 
-async function generateSnapshot() {
-    const result = await generateSnapshotInternal();
-    if (!result) {
-        return NextResponse.json({ message: 'No transactions found, skipping snapshot' });
-    }
-    return NextResponse.json({
-        message: `Snapshot generated for ${result.dateString}`,
-        totalValue: result.totalValue,
-        totalDayGain: result.totalDayGain,
-    });
-}
 
 async function generateSnapshotInternal() {
     const now = new Date();
@@ -154,9 +144,13 @@ async function generateSnapshotInternal() {
         };
     };
 
-    const sameerSnapshot = await buildProfileSnapshot('sameer');
-    const snehalSnapshot = await buildProfileSnapshot('snehal');
-    const sohamSnapshot = await buildProfileSnapshot('soham');
+    const profiles = await Transaction.distinct('profile', { userId });
+    const byProfile: Record<string, any> = {};
+    for (const p of profiles) {
+        if (p) {
+            byProfile[p] = await buildProfileSnapshot(p);
+        }
+    }
 
     const assetClassMap: Record<string, number> = {};
     holdings.forEach((h: any) => {
@@ -182,7 +176,7 @@ async function generateSnapshotInternal() {
                     totalInvested,
                     dayGain: totalDayGain,
                     dayGainPercent: totalValue > 0 ? (totalDayGain / (totalValue - totalDayGain)) * 100 : 0,
-                    byProfile: { sameer: sameerSnapshot, snehal: snehalSnapshot, soham: sohamSnapshot },
+                    byProfile,
                     byAssetClass,
                 }
             },
