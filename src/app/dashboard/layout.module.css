@@ -269,11 +269,10 @@
 
 .topBar {
   padding: 16px 32px;
-  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-primary);
+  background: var(--bg-navbar);
   backdrop-filter: blur(10px);
   position: sticky;
   top: 0;

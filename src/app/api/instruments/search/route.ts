@@ -54,9 +54,11 @@ export async function GET(req: NextRequest) {
 
             const matches = allSchemes
                 .filter((s) => {
-                    const name = s.schemeName.toLowerCase();
+                    // Remove all spaces and symbols from the target name so that 
+                    // a query for "flexicap" will match "Flexi Cap" and vice-versa
+                    const squishedName = s.schemeName.toLowerCase().replace(/[^a-z0-9]/g, '');
                     // Must contain all query words
-                    return queryWords.every((w) => name.includes(w));
+                    return queryWords.every((w) => squishedName.includes(w));
                 })
                 // Prefer Direct Growth plans
                 .sort((a, b) => {
@@ -93,8 +95,8 @@ export async function GET(req: NextRequest) {
 
             const matches = schemes
                 .filter((s: [string, string]) => {
-                    const name = s[1].toLowerCase();
-                    return queryWords.every((w) => name.includes(w));
+                    const squishedName = s[1].toLowerCase().replace(/[^a-z0-9]/g, '');
+                    return queryWords.every((w) => squishedName.includes(w));
                 })
                 .slice(0, 10)
                 .map((s: [string, string]) => ({

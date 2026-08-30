@@ -18,14 +18,14 @@
 }
 
 :global([data-theme='light']) .page {
-    --ink: #f8fafc;
+    --ink: #e0f2fe;
     --surface: #ffffff;
     --surface-raised: #f1f5f9;
     --hairline: rgba(0, 0, 0, 0.1);
     --hairline-soft: rgba(0, 0, 0, 0.05);
-    --paper: #0f172a;
-    --paper-dim: #475569;
-    --paper-faint: #64748b;
+    --paper: #000000;
+    --paper-dim: #111111;
+    --paper-faint: #222222;
     --accent: #3b82f6;
     --accent-dim: #dbeafe;
     --periwinkle: #6366f1;

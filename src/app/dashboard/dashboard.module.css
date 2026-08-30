@@ -19,12 +19,22 @@
 }
 
 .app {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 22px;
-  overflow: hidden;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
   font-family: 'Inter', sans-serif;
   color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.heroCard {
+  background: var(--bg-card);
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
 }
 
 /* ---------- Header / Hero ---------- */
@@ -33,7 +43,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 30px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: none;
 }
 
 .wordmark {
@@ -73,7 +83,7 @@
   grid-template-columns: 1.4fr 1fr;
   gap: 20px;
   padding: 34px 30px 26px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: none;
 }
 
 .heroEyebrow {
@@ -321,12 +331,16 @@
 .quickstats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  border-bottom: 1px solid var(--border-subtle);
+  gap: 20px;
+  border-bottom: none;
 }
 
 .qsCell {
   padding: 20px 26px;
-  border-right: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  border: none;
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
 }
 
 .qsCell:last-child {
@@ -367,7 +381,10 @@
 /* ---------- Section headers ---------- */
 .section {
   padding: 28px 30px;
-  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  border: none;
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
 }
 
 .sectionHead {
@@ -478,7 +495,7 @@
 }
 
 .gridMain > .section:first-child {
-  border-right: 1px solid var(--border-subtle);
+  border-right: none;
 }
 
 .donutWrap {
@@ -814,8 +831,5 @@
   }
   .insightRow {
     grid-template-columns: 1fr;
-  }
-  .insightCta {
-    justify-self: flex-start;
   }
 }

@@ -57,18 +57,45 @@ let amfiCache: AMFIScheme[] | null = null;
 
 export async function fetchAllMutualFunds(): Promise<AMFIScheme[]> {
     if (amfiCache) return amfiCache;
+    let data: AMFIScheme[] = [];
+    
     try {
         const res = await fetch('https://api.mfapi.in/mf', {
             next: { revalidate: 86400 } // Cache for 24 hours
         });
-        if (!res.ok) throw new Error('Failed to fetch AMFI list');
-        const data = await res.json();
-        amfiCache = data;
-        return data;
+        if (!res.ok) throw new Error('Failed to fetch AMFI list from mfapi');
+        data = await res.json();
     } catch (error) {
-        console.error('Error fetching AMFI list:', error);
-        return [];
+        console.warn('mfapi.in down, falling back to official AMFI text list...', error);
+        try {
+            const res = await fetch('https://www.amfiindia.com/spages/NAVAll.txt', {
+                headers: { 'User-Agent': 'Mozilla/5.0' },
+                next: { revalidate: 86400 }
+            });
+            if (!res.ok) throw new Error('Failed to fetch official AMFI list');
+            
+            const text = await res.text();
+            const lines = text.split('\n');
+            for (const line of lines) {
+                const parts = line.split(';');
+                if (parts.length >= 4) {
+                    const code = parseInt(parts[0], 10);
+                    if (!isNaN(code)) {
+                        let name = parts[3].trim();
+                        // Sometimes AMFI has plan and option in columns 4 and 5
+                        if (parts[4] && parts[4].trim() && parts[4].trim() !== '-') name += ' - ' + parts[4].trim();
+                        if (parts[5] && parts[5].trim() && parts[5].trim() !== '-') name += ' - ' + parts[5].trim();
+                        data.push({ schemeCode: code, schemeName: name });
+                    }
+                }
+            }
+        } catch (fallbackError) {
+            console.error('Both MF APIs failed:', fallbackError);
+        }
     }
+    
+    amfiCache = data;
+    return data;
 }
 
 export function searchMutualFund(query: string, allSchemes: AMFIScheme[]): string | null {

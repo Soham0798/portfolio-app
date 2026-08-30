@@ -249,49 +249,51 @@ export default function DashboardPage() {
     return (
         <div className={styles.page}>
             <div className={styles.app}>
-                <div className={styles.topline}>
-                    <div className={styles.wordmark}>Portf<span>o</span>lio</div>
-                    <div className={styles.synced}><span className={styles.pulse}></span> Last synced 2 min ago</div>
-                </div>
-
-                {/* HERO */}
-                <div className={styles.hero}>
-                    <div>
-                        <div className={styles.heroEyebrow}>Net worth · as of today</div>
-                        <div className={styles.heroNumber}>₹{formatCurrency(netWorth)}</div>
-                        <div className={`${styles.heroDelta} ${(summary?.totalGain || 0) < 0 ? styles.neg : ''}`}>
-                            {(summary?.totalGain || 0) >= 0 ? '▲' : '▼'} ₹{formatCurrency(Math.abs(summary?.totalGain || 0))} this month
-                        </div>
-                        <div className={styles.heroSpark}>
-                            <svg width="100%" height="70" viewBox="0 0 600 160" preserveAspectRatio="none" style={{ maxWidth: '420px' }}>
-                                <polyline points="0,150 54.5,135.8 109,116.9 163.6,126.4 218.2,102.8 272.7,83.9 327.3,93.3 381.8,69.7 436.4,50.8 490.9,41.3 545.5,46.1 600,30"
-                                    fill="none" stroke="#60a5fa" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                                <circle cx="600" cy="30" r="5" fill="#60a5fa"/>
-                            </svg>
-                        </div>
-                        <div className={styles.heroCaption}>12-month trend · assets minus liabilities, updated nightly</div>
+                <div className={styles.heroCard}>
+                    <div className={styles.topline}>
+                        <div className={styles.wordmark}>Portf<span>o</span>lio</div>
+                        <div className={styles.synced}><span className={styles.pulse}></span> Last synced 2 min ago</div>
                     </div>
-                    
-                    <div className={styles.heroBadge}>
-                        <div className={styles.stamp}>
-                            <div className={styles.score}>{Math.round(overallScore)}</div>
-                            <div className={styles.of}>/ 100</div>
-                            <div className={styles.label}>
-                                {overallScore >= 80 ? 'Excellent' : overallScore >= 60 ? 'Steady' : 'Needs Work'}
+
+                    {/* HERO */}
+                    <div className={styles.hero}>
+                        <div>
+                            <div className={styles.heroEyebrow}>Net worth · as of today</div>
+                            <div className={styles.heroNumber}>₹{formatCurrency(netWorth)}</div>
+                            <div className={`${styles.heroDelta} ${(summary?.totalGain || 0) < 0 ? styles.neg : ''}`}>
+                                {(summary?.totalGain || 0) >= 0 ? '▲' : '▼'} ₹{formatCurrency(Math.abs(summary?.totalGain || 0))} this month
                             </div>
+                            <div className={styles.heroSpark}>
+                                <svg width="100%" height="70" viewBox="0 0 600 160" preserveAspectRatio="none" style={{ maxWidth: '420px' }}>
+                                    <polyline points="0,150 54.5,135.8 109,116.9 163.6,126.4 218.2,102.8 272.7,83.9 327.3,93.3 381.8,69.7 436.4,50.8 490.9,41.3 545.5,46.1 600,30"
+                                        fill="none" stroke="#60a5fa" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <circle cx="600" cy="30" r="5" fill="#60a5fa"/>
+                                </svg>
+                            </div>
+                            <div className={styles.heroCaption}>12-month trend · assets minus liabilities, updated nightly</div>
                         </div>
-                        <div className={styles.badgeCaption}>Portfolio health score — 8 factors combined</div>
-                        {profile !== 'combined' && (
-                            <div className={styles.ageControl}>
-                                Age
-                                <span className={styles.staticAge}>{currentAge}</span>
-                                <span>yrs</span>
-                                <Link href="/dashboard/planning" className={styles.editAgeLink}>Edit</Link>
+                        
+                        <div className={styles.heroBadge}>
+                            <div className={styles.stamp}>
+                                <div className={styles.score}>{Math.round(overallScore)}</div>
+                                <div className={styles.of}>/ 100</div>
+                                <div className={styles.label}>
+                                    {overallScore >= 80 ? 'Excellent' : overallScore >= 60 ? 'Steady' : 'Needs Work'}
+                                </div>
                             </div>
-                        )}
-                        <button className={styles.breakdownLink} onClick={() => setShowBreakdown(!showBreakdown)}>
-                            {showBreakdown ? 'Hide breakdown' : 'View breakdown'}
-                        </button>
+                            <div className={styles.badgeCaption}>Portfolio health score — 8 factors combined</div>
+                            {profile !== 'combined' && (
+                                <div className={styles.ageControl}>
+                                    Age
+                                    <span className={styles.staticAge}>{currentAge}</span>
+                                    <span>yrs</span>
+                                    <Link href="/dashboard/planning" className={styles.editAgeLink}>Edit</Link>
+                                </div>
+                            )}
+                            <button className={styles.breakdownLink} onClick={() => setShowBreakdown(!showBreakdown)}>
+                                {showBreakdown ? 'Hide breakdown' : 'View breakdown'}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
