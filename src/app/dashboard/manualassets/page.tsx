@@ -28,8 +28,8 @@ interface SearchResult {
     type: string;
 }
 
-const MANUAL_TYPES = ['FD', 'EPF', 'PPF', 'NPS', 'SGB', 'ULIP'];
-const MARKET_TYPES = ['STOCK', 'MUTUAL_FUND'];
+const MANUAL_TYPES = ['FD', 'EPF', 'PPF', 'ULIP'];
+const MARKET_TYPES = ['STOCK', 'MUTUAL_FUND', 'SGB', 'NPS'];
 
 export default function AssetsPage() {
     const { profile } = useProfile();
@@ -123,7 +123,7 @@ export default function AssetsPage() {
         }
         setSearchLoading(true);
         try {
-            const type = form.assetType === 'STOCK' ? 'STOCK' : 'MUTUAL_FUND';
+            const type = form.assetType;
             const res = await fetch(`/api/instruments/search?q=${encodeURIComponent(query)}&type=${type}`);
             const data = await res.json();
             setSearchResults(data.results || []);
@@ -400,7 +400,7 @@ export default function AssetsPage() {
                         {/* Asset Type Tabs */}
                         {!editingId && (
                             <div className="tab-group" style={{ marginBottom: '20px', width: '100%', display: 'flex' }}>
-                                {['STOCK', 'MUTUAL_FUND', ...MANUAL_TYPES].map((t) => (
+                                {['STOCK', 'MUTUAL_FUND', 'FD', 'EPF', 'PPF', 'NPS', 'SGB', 'ULIP'].map((t) => (
                                     <button
                                         key={t}
                                         type="button"
@@ -424,12 +424,12 @@ export default function AssetsPage() {
                             <form onSubmit={handleMarketSubmit} className={styles.form}>
                                 <div className={styles.field} ref={searchRef}>
                                     <label className="label">
-                                        Search {form.assetType === 'STOCK' ? 'Stock' : 'Mutual Fund'}
+                                        Search {form.assetType === 'STOCK' ? 'Stock' : form.assetType === 'MUTUAL_FUND' ? 'Mutual Fund' : form.assetType === 'NPS' ? 'NPS Scheme' : 'SGB'}
                                     </label>
                                     <input
                                         type="text"
                                         className="input"
-                                        placeholder={form.assetType === 'STOCK' ? 'e.g. Reliance, HDFC Bank...' : 'e.g. Parag Parikh, Motilal Oswal...'}
+                                        placeholder={form.assetType === 'STOCK' ? 'e.g. Reliance, HDFC Bank...' : form.assetType === 'MUTUAL_FUND' ? 'e.g. Parag Parikh, Motilal Oswal...' : form.assetType === 'NPS' ? 'e.g. SBI Pension Fund...' : 'e.g. SGBAUG28...'}
                                         value={searchQuery}
                                         onChange={(e) => handleSearchInput(e.target.value)}
                                         autoComplete="off"
@@ -496,10 +496,12 @@ export default function AssetsPage() {
                                     </div>
                                 </div>
 
-                                <div className={styles.field}>
-                                    <label className="label">Fees / Charges (₹)</label>
-                                    <input type="number" className="input" placeholder="0" step="any" value={marketForm.fees} onChange={(e) => setMarketForm({ ...marketForm, fees: e.target.value })} />
-                                </div>
+                                {form.assetType !== 'NPS' && (
+                                    <div className={styles.field}>
+                                        <label className="label">Fees / Charges (₹)</label>
+                                        <input type="number" className="input" placeholder="0" step="any" value={marketForm.fees} onChange={(e) => setMarketForm({ ...marketForm, fees: e.target.value })} />
+                                    </div>
+                                )}
 
                                 <div className={styles.formActions} style={{ marginTop: '24px' }}>
                                     <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>

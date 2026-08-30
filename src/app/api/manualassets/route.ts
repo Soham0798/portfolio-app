@@ -6,6 +6,7 @@ import Instrument from '@/models/Instrument';
 import Transaction from '@/models/Transaction';
 import { fetchYahooPrice } from '@/lib/prices/yahoo';
 import { fetchMutualFundNAV } from '@/lib/prices/amfi';
+import { fetchNPSNav } from '@/lib/prices/nps';
 
 export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
@@ -34,8 +35,8 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
 
-        // ========== MARKET ASSET FLOW (Stock / Mutual Fund) ==========
-        if (body.assetType === 'STOCK' || body.assetType === 'MUTUAL_FUND') {
+        // ========== MARKET ASSET FLOW (Stock / Mutual Fund / SGB / NPS) ==========
+        if (['STOCK', 'MUTUAL_FUND', 'SGB', 'NPS'].includes(body.assetType)) {
             const { tickerSymbol, name, schemeCode, exchange, profile, date, quantity, price, fees } = body;
 
             if (!tickerSymbol || !name || !quantity || !price) {
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
 
             // Fetch current price immediately
             try {
-                if (body.assetType === 'STOCK') {
+                if (body.assetType === 'STOCK' || body.assetType === 'SGB') {
                     const priceData = await fetchYahooPrice(tickerSymbol);
                     if (priceData) {
                         instrument.currentPrice = priceData.currentPrice;
@@ -69,8 +70,16 @@ export async function POST(req: NextRequest) {
                         instrument.priceLastUpdated = new Date();
                         await instrument.save();
                     }
-                } else if (schemeCode) {
+                } else if (body.assetType === 'MUTUAL_FUND' && schemeCode) {
                     const navData = await fetchMutualFundNAV(schemeCode);
+                    if (navData) {
+                        instrument.currentPrice = navData.currentPrice;
+                        instrument.previousClose = navData.previousClose;
+                        instrument.priceLastUpdated = new Date();
+                        await instrument.save();
+                    }
+                } else if (body.assetType === 'NPS') {
+                    const navData = await fetchNPSNav(tickerSymbol);
                     if (navData) {
                         instrument.currentPrice = navData.currentPrice;
                         instrument.previousClose = navData.previousClose;

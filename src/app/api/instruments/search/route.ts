@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        if (type === 'STOCK') {
+        if (type === 'STOCK' || type === 'SGB') {
             const res = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`, {
                 next: { revalidate: 3600 } // Cache for 1 hour
             });
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
                     symbol: q.symbol,
                     name: q.shortname || q.longname || q.symbol,
                     exchange: q.exchange || '',
-                    type: 'STOCK',
+                    type: type, // Map to either STOCK or SGB based on the request
                 }));
 
             return NextResponse.json({ results: quotes });

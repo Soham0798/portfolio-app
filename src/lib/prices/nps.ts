@@ -13,13 +13,16 @@ export async function fetchNPSNav(schemeCode: string): Promise<PriceResult | nul
 
         const data = await res.json();
 
-        if (!data.nav) {
+        if (!data.NAV) {
             return null;
         }
 
+        const nav = parseFloat(data.NAV);
+        const dailyChange = parseFloat(data['1D'] || 0);
+
         return {
-            currentPrice: parseFloat(data.nav),
-            previousClose: parseFloat(data.previousNav || data.nav),
+            currentPrice: nav,
+            previousClose: nav - dailyChange,
         };
     } catch (error: any) {
         console.error(`NPS fetch error for ${schemeCode}:`, error.message);

@@ -6,6 +6,7 @@ import { ProfileProvider, useProfile } from '@/components/ProfileContext';
 import Select from '@/components/Select';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import styles from './layout.module.css';
 
 const NAV_GROUPS = [
@@ -301,7 +302,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                         </svg>
                     </button>
 
-                    <div className={styles.profileSwitcher}>
+                    <div className={styles.profileSwitcher} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <div className={`tab-group hide-on-mobile`}>
                             {(['sameer', 'snehal', 'soham', 'combined'] as const).map((p) => {
                                 let dotStyle = {};
@@ -335,6 +336,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                                 ]}
                             />
                         </div>
+                        <ThemeToggle />
                     </div>
                 </header>
 
