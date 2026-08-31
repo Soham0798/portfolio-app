@@ -18,6 +18,10 @@ interface ManualAsset {
     maturityDate: string | null;
     status: string;
     isMarket?: boolean;
+    lifeCover?: number;
+    quantity?: number;
+    price?: number;
+    symbol?: string;
 }
 
 interface SearchResult {
@@ -38,7 +42,7 @@ export default function AssetsPage() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    const [deleteConfirmAsset, setDeleteConfirmAsset] = useState<ManualAsset | null>(null);
     const [formError, setFormError] = useState('');
     const [formSuccess, setFormSuccess] = useState('');
     const [isLiveRefreshing, setIsLiveRefreshing] = useState(false);
@@ -51,6 +55,7 @@ export default function AssetsPage() {
         currentValue: '',
         totalInvested: '',
         interestRate: '',
+        lifeCover: '',
         maturityDate: '',
     });
 
@@ -127,7 +132,11 @@ export default function AssetsPage() {
                 name: h.name,
                 currentValue: h.currentValue,
                 totalInvested: h.totalInvested,
+                quantity: h.currentQty,
+                price: h.avgBuyPrice,
+                symbol: h.tickerSymbol,
                 interestRate: 0,
+                lifeCover: 0,
                 maturityDate: null,
                 status: 'ACTIVE',
                 isMarket: true
@@ -226,6 +235,7 @@ export default function AssetsPage() {
             currentValue: '',
             totalInvested: '',
             interestRate: '',
+            lifeCover: '',
             maturityDate: '',
         });
         setMarketForm({
@@ -246,41 +256,53 @@ export default function AssetsPage() {
         setFormError('');
         setFormSuccess('');
         
-        if (!selectedInstrument) {
+        // If it's a new entry, require search selection
+        if (!editingId && !selectedInstrument) {
             setFormError('Please search and select an instrument first.');
             return;
         }
 
         setSubmitting(true);
         try {
-            const res = await fetch('/api/manualassets', {
-                method: 'POST',
+            const url = editingId ? `/api/marketassets/${editingId}` : '/api/manualassets';
+            const method = editingId ? 'PUT' : 'POST';
+
+            const payload = editingId ? {
+                profile: marketForm.profile,
+                date: marketForm.date,
+                quantity: parseFloat(marketForm.quantity),
+                price: parseFloat(marketForm.price),
+                fees: parseFloat(marketForm.fees || '0'),
+            } : {
+                assetType: form.assetType,
+                profile: marketForm.profile,
+                tickerSymbol: selectedInstrument!.symbol,
+                name: selectedInstrument!.name,
+                schemeCode: selectedInstrument!.schemeCode || null,
+                exchange: selectedInstrument!.exchange || '',
+                date: marketForm.date,
+                quantity: parseFloat(marketForm.quantity),
+                price: parseFloat(marketForm.price),
+                fees: parseFloat(marketForm.fees || '0'),
+            };
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    assetType: form.assetType,
-                    profile: marketForm.profile,
-                    tickerSymbol: selectedInstrument.symbol,
-                    name: selectedInstrument.name,
-                    schemeCode: selectedInstrument.schemeCode || null,
-                    exchange: selectedInstrument.exchange || '',
-                    date: marketForm.date,
-                    quantity: parseFloat(marketForm.quantity),
-                    price: parseFloat(marketForm.price),
-                    fees: parseFloat(marketForm.fees || '0'),
-                }),
+                body: JSON.stringify(payload),
             });
 
             const data = await res.json();
             if (res.ok) {
                 setShowModal(false);
                 resetForm();
-                setFormSuccess(`Added ${selectedInstrument.name} to your Assets!`);
+                setFormSuccess(editingId ? 'Holding updated!' : `Added to your Assets!`);
                 fetchAssets();
                 setTimeout(() => {
                     setFormSuccess('');
                 }, 3000);
             } else {
-                setFormError(data.error || 'Failed to add instrument');
+                setFormError(data.error || 'Failed to save instrument');
             }
         } catch {
             setFormError('Something went wrong');
@@ -307,6 +329,7 @@ export default function AssetsPage() {
                     currentValue: parseFloat(form.currentValue),
                     totalInvested: parseFloat(form.totalInvested),
                     interestRate: parseFloat(form.interestRate || '0'),
+                    lifeCover: parseFloat(form.lifeCover || '0'),
                     maturityDate: form.maturityDate || null,
                 }),
             });
@@ -334,32 +357,54 @@ export default function AssetsPage() {
     };
 
     const handleEdit = (asset: ManualAsset) => {
-        setForm({
-            profile: asset.profile,
-            assetType: asset.assetType,
-            name: asset.name,
-            currentValue: asset.currentValue.toString(),
-            totalInvested: asset.totalInvested.toString(),
-            interestRate: asset.interestRate.toString(),
-            maturityDate: asset.maturityDate ? asset.maturityDate.split('T')[0] : '',
-        });
+        if (asset.isMarket) {
+            setForm({ ...form, assetType: asset.assetType });
+            setMarketForm({
+                profile: asset.profile,
+                date: new Date().toISOString().split('T')[0],
+                quantity: asset.quantity?.toString() || '',
+                price: asset.price?.toString() || '',
+                fees: '0',
+            });
+            setSelectedInstrument({
+                symbol: asset.symbol || '',
+                name: asset.name,
+                type: asset.assetType
+            });
+        } else {
+            setForm({
+                profile: asset.profile,
+                assetType: asset.assetType,
+                name: asset.name,
+                currentValue: asset.currentValue.toString(),
+                totalInvested: asset.totalInvested.toString(),
+                interestRate: asset.interestRate.toString(),
+                lifeCover: (asset.lifeCover || 0).toString(),
+                maturityDate: asset.maturityDate ? asset.maturityDate.split('T')[0] : '',
+            });
+        }
         setEditingId(asset._id);
         setShowModal(true);
     };
 
-    const handleDelete = (id: string) => {
-        setDeleteConfirmId(id);
+    const handleDelete = (asset: ManualAsset) => {
+        setDeleteConfirmAsset(asset);
     };
 
     const confirmDelete = async () => {
-        if (!deleteConfirmId) return;
+        if (!deleteConfirmAsset) return;
         try {
-            await fetch(`/api/manualassets/${deleteConfirmId}`, { method: 'DELETE' });
+            if (deleteConfirmAsset.isMarket) {
+                const profileParam = deleteConfirmAsset.profile === 'Combined' ? '' : `?profile=${deleteConfirmAsset.profile}`;
+                await fetch(`/api/marketassets/${deleteConfirmAsset._id}${profileParam}`, { method: 'DELETE' });
+            } else {
+                await fetch(`/api/manualassets/${deleteConfirmAsset._id}`, { method: 'DELETE' });
+            }
             fetchAssets();
         } catch (err) {
             console.error('Failed to delete:', err);
         } finally {
-            setDeleteConfirmId(null);
+            setDeleteConfirmAsset(null);
         }
     };
 
@@ -368,15 +413,15 @@ export default function AssetsPage() {
 
     return (
         <div className={styles.page}>
-            {deleteConfirmId && (
-                <div className={layoutStyles.modalOverlay} onClick={() => setDeleteConfirmId(null)}>
+            {deleteConfirmAsset && (
+                <div className={layoutStyles.modalOverlay} onClick={() => setDeleteConfirmAsset(null)}>
                     <div className={layoutStyles.modalContent} onClick={e => e.stopPropagation()}>
                         <h3 className={layoutStyles.modalTitle}>Delete Asset</h3>
                         <p className={layoutStyles.modalDesc}>
-                            Are you sure you want to delete this manual asset? This action cannot be undone.
+                            Are you sure you want to delete <strong>{deleteConfirmAsset.name}</strong>? {deleteConfirmAsset.isMarket ? 'This will delete all associated transactions.' : 'This action cannot be undone.'}
                         </p>
                         <div className={layoutStyles.modalActions}>
-                            <button className={layoutStyles.modalBtnCancel} onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+                            <button className={layoutStyles.modalBtnCancel} onClick={() => setDeleteConfirmAsset(null)}>Cancel</button>
                             <button className={layoutStyles.modalBtnDanger} onClick={confirmDelete}>Delete</button>
                         </div>
                     </div>
@@ -538,12 +583,18 @@ export default function AssetsPage() {
                                             <span>Returns</span>
                                             <span className={returns >= 0 ? 'gain' : 'loss'}>{formatCurrency(returns)}</span>
                                         </div>
-                                        {asset.interestRate > 0 && (
+                                        {asset.interestRate > 0 && asset.assetType !== 'ULIP' && (
                                             <div className={styles.detailRow}>
                                                 <span>Interest Rate</span>
                                                 <span>{asset.interestRate}%</span>
                                             </div>
                                         )}
+                                        {asset.lifeCover && asset.lifeCover > 0 && asset.assetType === 'ULIP' ? (
+                                            <div className={styles.detailRow}>
+                                                <span>Life Cover</span>
+                                                <span>{formatCurrency(asset.lifeCover)}</span>
+                                            </div>
+                                        ) : null}
                                         {asset.maturityDate && (
                                             <div className={styles.detailRow}>
                                                 <span>Maturity</span>
@@ -552,19 +603,12 @@ export default function AssetsPage() {
                                         )}
                                     </div>
                                     <div className={styles.cardActions}>
-                                        {!asset.isMarket && (
-                                            <>
-                                                <button className="btn-secondary" onClick={() => handleEdit(asset)}>
-                                                    Edit
-                                                </button>
-                                                <button className={styles.deleteBtn} onClick={() => handleDelete(asset._id)}>
-                                                    Delete
-                                                </button>
-                                            </>
-                                        )}
-                                        {asset.isMarket && (
-                                            <span style={{ fontSize: '11px', color: 'var(--paper-dim)' }}>Managed via Transactions</span>
-                                        )}
+                                        <button className="btn-secondary" onClick={() => handleEdit(asset)}>
+                                            Edit
+                                        </button>
+                                        <button className={styles.deleteBtn} onClick={() => handleDelete(asset)}>
+                                            Delete
+                                        </button>
                                     </div>
                                 </motion.div>
                             );
@@ -575,18 +619,43 @@ export default function AssetsPage() {
 
             {showModal && (
                 <div className={styles.overlay} onClick={() => { setShowModal(false); resetForm(); }}>
-                    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-                        <h3 className={styles.modalTitle}>{editingId ? 'Update Asset' : 'Add Asset'}</h3>
+                    <div className={styles.newCard} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.newCardHeader}>
+                            <h1>
+                                {editingId ? 'Update Asset' : 'Add Asset'}
+                                <span>{editingId ? 'edit' : 'new'}</span>
+                            </h1>
+                        </div>
 
-                        {/* Asset Type Tabs */}
+                        {/* Profile row */}
+                        <div className={styles.profileRow} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.75rem', paddingTop: '0.25rem' }}>
+                            <span className={styles.profileLabel} style={{ fontSize: '0.9rem', fontWeight: 500 }}>Profile</span>
+                            <div style={{ minWidth: '120px' }}>
+                                <Select 
+                                    value={isMarketType && !editingId ? marketForm.profile : form.profile} 
+                                    onChange={(value) => {
+                                        if (isMarketType && !editingId) {
+                                            setMarketForm({ ...marketForm, profile: value });
+                                        } else {
+                                            setForm({ ...form, profile: value });
+                                        }
+                                    }}
+                                    options={[
+                                        { value: 'sameer', label: 'Sameer' },
+                                        { value: 'snehal', label: 'Snehal' },
+                                        { value: 'soham', label: 'Soham' }
+                                    ]}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Stock pills (Asset Type Tabs) */}
                         {!editingId && (
-                            <div className="tab-group" style={{ marginBottom: '20px', width: '100%', display: 'flex' }}>
+                            <div className={styles.stockPills}>
                                 {['STOCK', 'MUTUAL_FUND', 'FD', 'EPF', 'PPF', 'NPS', 'SGB', 'ULIP'].map((t) => (
-                                    <button
+                                    <span
                                         key={t}
-                                        type="button"
-                                        style={{ flex: 1, justifyContent: 'center' }}
-                                        className={`tab ${form.assetType === t ? 'active' : ''}`}
+                                        className={`${styles.pill} ${form.assetType === t ? styles.pillHighlight : ''}`}
                                         onClick={() => {
                                             setForm({ ...form, assetType: t });
                                             setSearchQuery('');
@@ -595,32 +664,30 @@ export default function AssetsPage() {
                                         }}
                                     >
                                         {t === 'MUTUAL_FUND' ? 'MF' : t}
-                                    </button>
+                                    </span>
                                 ))}
                             </div>
                         )}
 
                         {/* ========== MARKET ASSET FORM (Stock / MF) ========== */}
-                        {isMarketType && !editingId ? (
-                            <form onSubmit={handleMarketSubmit} className={styles.form}>
-                                <div className={styles.field} ref={searchRef}>
-                                    <label className="label">
-                                        Search {form.assetType === 'STOCK' ? 'Stock' : form.assetType === 'MUTUAL_FUND' ? 'Mutual Fund' : form.assetType === 'NPS' ? 'NPS Scheme' : 'Sovereign Gold Bond Series'}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="input"
-                                        placeholder={form.assetType === 'STOCK' ? 'e.g. Reliance, HDFC Bank...' : form.assetType === 'MUTUAL_FUND' ? 'e.g. Parag Parikh, Motilal Oswal...' : form.assetType === 'NPS' ? 'e.g. SBI Pension Fund...' : 'e.g. SGB 2020-21, Aug 2028, Series IV...'}
-                                        value={searchQuery}
-                                        onChange={(e) => handleSearchInput(e.target.value)}
-                                        autoComplete="off"
-                                    />
-                                    {searchLoading && (
-                                        <div className={styles.searchHint}>Searching...</div>
-                                    )}
+                        {isMarketType ? (
+                            <form onSubmit={handleMarketSubmit}>
+                                <div className={styles.searchSection} ref={searchRef}>
+                                    <span className={styles.searchLabel}>Search {form.assetType === 'STOCK' ? 'Stock' : form.assetType === 'MUTUAL_FUND' ? 'Mutual Fund' : form.assetType === 'NPS' ? 'NPS Scheme' : 'SGB'}</span>
+                                    <div className={styles.searchWrapper}>
+                                        <input
+                                            type="text"
+                                            placeholder={form.assetType === 'STOCK' ? 'e.g. Reliance, HDFC Bank...' : form.assetType === 'MUTUAL_FUND' ? 'e.g. Parag Parikh, Motilal Oswal...' : form.assetType === 'NPS' ? 'e.g. SBI Pension Fund...' : 'e.g. SGB 2020-21, Aug 2028, Series IV...'}
+                                            value={searchQuery}
+                                            onChange={(e) => handleSearchInput(e.target.value)}
+                                            autoComplete="off"
+                                        />
+                                        <span className={styles.searchIcon}>⌕</span>
+                                    </div>
+                                    {searchLoading && <div className={styles.searchHint}>Searching...</div>}
 
                                     {showDropdown && searchResults.length > 0 && (
-                                        <div className={styles.dropdown}>
+                                        <div className={styles.dropdown} style={{ marginTop: '0.5rem', borderRadius: '16px' }}>
                                             {searchResults.map((r, i) => (
                                                 <button
                                                     key={i}
@@ -636,117 +703,128 @@ export default function AssetsPage() {
                                     )}
 
                                     {showDropdown && searchResults.length === 0 && searchQuery.length >= 2 && !searchLoading && (
-                                        <div className={styles.dropdown}>
+                                        <div className={styles.dropdown} style={{ marginTop: '0.5rem', borderRadius: '16px' }}>
                                             <div className={styles.dropdownEmpty}>No results found</div>
                                         </div>
                                     )}
                                 </div>
 
                                 {selectedInstrument && (
-                                    <div className={styles.selectedBadge}>
+                                    <div className={styles.selectedBadge} style={{ marginBottom: '1rem', borderRadius: '40px', background: '#f2f7ff', border: '1px solid #1a5cff', color: '#1a5cff' }}>
                                         ✓ {selectedInstrument.name}
-                                        <span className={styles.selectedTicker}>{selectedInstrument.symbol}</span>
+                                        {selectedInstrument.symbol && <span className={styles.selectedTicker}>{selectedInstrument.symbol}</span>}
                                     </div>
                                 )}
 
-                                <div className={styles.field}>
-                                    <label className="label">Profile</label>
-                                    <Select 
-                                        value={marketForm.profile} 
-                                        onChange={(value) => setMarketForm({ ...marketForm, profile: value })}
-                                        options={[
-                                            { value: 'sameer', label: 'Sameer' },
-                                            { value: 'snehal', label: 'Snehal' },
-                                            { value: 'soham', label: 'Soham' }
-                                        ]}
-                                    />
-                                </div>
-                                <div className={styles.field}>
-                                    <label className="label">Date</label>
-                                    <input type="date" className="input" value={marketForm.date} onChange={(e) => setMarketForm({ ...marketForm, date: e.target.value })} required />
-                                </div>
-
-                                <div className={styles.row}>
-                                    <div className={styles.field}>
-                                        <label className="label">{form.assetType === 'SGB' ? 'Quantity (in Grams)' : 'Quantity'}</label>
-                                        <input type="number" className="input" placeholder="0" step="any" value={marketForm.quantity} onChange={(e) => setMarketForm({ ...marketForm, quantity: e.target.value })} required />
+                                <div className={styles.formGrid}>
+                                    <div className={styles.fieldGroup}>
+                                        <label>Date</label>
+                                        <input type="date" className={styles.inputField} value={marketForm.date} onChange={(e) => setMarketForm({ ...marketForm, date: e.target.value })} required />
                                     </div>
-                                    <div className={styles.field}>
+
+                                    <div className={styles.fieldGroup}>
+                                        <label>{form.assetType === 'SGB' ? 'Quantity (in Grams)' : 'Quantity'}</label>
+                                        <input type="number" className={styles.inputField} placeholder="0" step="any" value={marketForm.quantity} onChange={(e) => setMarketForm({ ...marketForm, quantity: e.target.value })} required />
+                                    </div>
+
+                                    <div className={styles.fieldGroup}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <label className="label">{form.assetType === 'SGB' ? 'Gold Rate (₹/gram)' : 'Price per unit (₹)'}</label>
+                                            <label>{form.assetType === 'SGB' ? 'Gold Rate (₹/gram)' : 'Price per unit (₹)'}</label>
                                             {form.assetType === 'SGB' && selectedInstrument?.currentPrice && (
-                                                <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>
-                                                    Live: ₹{selectedInstrument.currentPrice.toLocaleString('en-IN')}/g
-                                                </span>
+                                                <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>Live: ₹{selectedInstrument.currentPrice.toLocaleString('en-IN')}/g</span>
                                             )}
                                         </div>
-                                        <input type="number" className="input" placeholder="0" step="any" value={marketForm.price} onChange={(e) => setMarketForm({ ...marketForm, price: e.target.value })} required />
+                                        <div className={styles.inputWithSymbol}>
+                                            <span className={styles.symbol}>₹</span>
+                                            <input type="number" className={styles.inputField} placeholder="0" step="any" value={marketForm.price} onChange={(e) => setMarketForm({ ...marketForm, price: e.target.value })} required />
+                                        </div>
                                     </div>
+
+                                    {form.assetType !== 'NPS' && (
+                                        <div className={styles.fieldGroup}>
+                                            <label>Fees / Charges (₹)</label>
+                                            <div className={styles.inputWithSymbol}>
+                                                <span className={styles.symbol}>₹</span>
+                                                <input type="number" className={styles.inputField} placeholder="0" step="any" value={marketForm.fees} onChange={(e) => setMarketForm({ ...marketForm, fees: e.target.value })} />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {form.assetType !== 'NPS' && (
-                                    <div className={styles.field}>
-                                        <label className="label">Fees / Charges (₹)</label>
-                                        <input type="number" className="input" placeholder="0" step="any" value={marketForm.fees} onChange={(e) => setMarketForm({ ...marketForm, fees: e.target.value })} />
-                                    </div>
-                                )}
-
-                                <div className={styles.formActions} style={{ marginTop: '24px' }}>
-                                    <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
-                                    <button type="submit" className="btn-primary" disabled={submitting}>
-                                        {submitting ? 'Adding...' : 'Add to Portfolio'}
+                                <div className={styles.actionRow}>
+                                    <button type="button" className={`${styles.btnAction} ${styles.btnOutlineAction}`} onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
+                                    <button type="submit" className={`${styles.btnAction} ${styles.btnPrimaryAction}`} disabled={submitting}>
+                                        {submitting ? 'Saving...' : editingId ? 'Update Holding' : 'Add to Portfolio'}
                                     </button>
                                 </div>
                             </form>
                         ) : (
                             /* ========== MANUAL ASSET FORM (FD/EPF/etc) ========== */
-                            <form onSubmit={handleManualSubmit} className={styles.form}>
-                                <div className={styles.field}>
-                                    <label className="label">Profile</label>
-                                    <Select 
-                                        value={form.profile} 
-                                        onChange={(value) => setForm({ ...form, profile: value })}
-                                        options={[
-                                            { value: 'sameer', label: 'Sameer' },
-                                            { value: 'snehal', label: 'Snehal' },
-                                            { value: 'soham', label: 'Soham' }
-                                        ]}
-                                    />
-                                </div>
-
-                                <div className={styles.field}>
-                                    <label className="label">Name</label>
-                                    <input type="text" className="input" placeholder="e.g. SBI FD - 7.1%" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                                </div>
-
-                                <div className={styles.row}>
-                                    <div className={styles.field}>
-                                        <label className="label">Current Value</label>
-                                        <input type="number" className="input" placeholder="0" step="any" value={form.currentValue} onChange={(e) => setForm({ ...form, currentValue: e.target.value })} required />
-                                    </div>
-                                    <div className={styles.field}>
-                                        <label className="label">Total Invested</label>
-                                        <input type="number" className="input" placeholder="0" step="any" value={form.totalInvested} onChange={(e) => setForm({ ...form, totalInvested: e.target.value })} required />
+                            <form onSubmit={handleManualSubmit}>
+                                <div className={styles.searchSection}>
+                                    <span className={styles.searchLabel}>Name</span>
+                                    <div className={styles.searchWrapper}>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. SBI FD - 7.1%"
+                                            value={form.name}
+                                            onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                            required
+                                        />
+                                        <span className={styles.searchIcon}>⌕</span>
                                     </div>
                                 </div>
-
-                                <div className={styles.row}>
-                                    <div className={styles.field}>
-                                        <label className="label">Interest Rate (%)</label>
-                                        <input type="number" className="input" placeholder="0" step="any" value={form.interestRate} onChange={(e) => setForm({ ...form, interestRate: e.target.value })} />
+                                <div className={styles.formGrid}>
+                                    <div className={styles.fieldGroup}>
+                                        <label>Current Value (₹)</label>
+                                        <div className={styles.inputWithSymbol}>
+                                            <span className={styles.symbol}>₹</span>
+                                            <input type="number" className={styles.inputField} placeholder="0" step="any" value={form.currentValue} onChange={(e) => setForm({ ...form, currentValue: e.target.value })} required />
+                                        </div>
                                     </div>
-                                    <div className={styles.field}>
-                                        <label className="label">Maturity Date</label>
-                                        <input type="date" className="input" value={form.maturityDate} onChange={(e) => setForm({ ...form, maturityDate: e.target.value })} />
+
+                                    <div className={styles.fieldGroup}>
+                                        <label>Total Invested (₹)</label>
+                                        <div className={styles.inputWithSymbol}>
+                                            <span className={styles.symbol}>₹</span>
+                                            <input type="number" className={styles.inputField} placeholder="0" step="any" value={form.totalInvested} onChange={(e) => setForm({ ...form, totalInvested: e.target.value })} required />
+                                        </div>
+                                    </div>
+
+                                    {form.assetType !== 'ULIP' ? (
+                                        <div className={styles.fieldGroup}>
+                                            <label>Interest Rate (%)</label>
+                                            <div className={styles.inputWithSymbol}>
+                                                <span className={styles.symbol}>%</span>
+                                                <input type="number" className={styles.inputField} placeholder="0" step="any" value={form.interestRate} onChange={(e) => setForm({ ...form, interestRate: e.target.value })} />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className={styles.fieldGroup}>
+                                            <label>Life Cover (₹)</label>
+                                            <div className={styles.inputWithSymbol}>
+                                                <span className={styles.symbol}>₹</span>
+                                                <input type="number" className={styles.inputField} placeholder="0" step="any" value={form.lifeCover} onChange={(e) => setForm({ ...form, lifeCover: e.target.value })} />
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className={styles.fieldGroup}>
+                                        <label>Maturity Date</label>
+                                        <input type="date" className={styles.inputField} value={form.maturityDate} onChange={(e) => setForm({ ...form, maturityDate: e.target.value })} />
                                     </div>
                                 </div>
 
-                                <div className={styles.formActions} style={{ marginTop: '24px' }}>
-                                    <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
-                                    <button type="submit" className="btn-primary">{editingId ? 'Update' : 'Add Asset'}</button>
+                                <div className={styles.actionRow}>
+                                    <button type="button" className={`${styles.btnAction} ${styles.btnOutlineAction}`} onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
+                                    <button type="submit" className={`${styles.btnAction} ${styles.btnPrimaryAction}`}>
+                                        {submitting ? 'Saving...' : editingId ? 'Update' : 'Add Asset'}
+                                    </button>
                                 </div>
                             </form>
                         )}
+                        <div style={{ marginTop: '1.2rem', fontSize: '0.65rem', color: '#8ba0bc', textAlign: 'right', paddingTop: '0.8rem', letterSpacing: '0.01em' }}>
+                            <span>all fields are editable · click to adjust</span>
+                        </div>
                     </div>
                 </div>
             )}

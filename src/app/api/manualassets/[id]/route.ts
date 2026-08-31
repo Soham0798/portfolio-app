@@ -22,6 +22,7 @@ export async function PUT(
 
     if (body.name) asset.name = body.name;
     if (body.interestRate !== undefined) asset.interestRate = body.interestRate;
+    if (body.lifeCover !== undefined) asset.lifeCover = body.lifeCover;
     if (body.maturityDate !== undefined) asset.maturityDate = body.maturityDate;
     if (body.status) asset.status = body.status;
     if (body.totalInvested !== undefined) asset.totalInvested = body.totalInvested;

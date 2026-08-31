@@ -79,8 +79,9 @@ export default function HoldingsPage() {
     const formatCurrency = (n: number) => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n || 0);
 
     const stocks = useMemo(() => holdings.filter(h => h.assetType === 'STOCK' || h.assetType === 'ETF'), [holdings]);
-    const funds = useMemo(() => holdings.filter(h => h.assetType === 'MUTUAL_FUND' || h.assetType === 'NPS'), [holdings]);
+    const funds = useMemo(() => holdings.filter(h => h.assetType === 'MUTUAL_FUND'), [holdings]);
     const sgbs = useMemo(() => holdings.filter(h => h.assetType === 'SGB'), [holdings]);
+    const nps = useMemo(() => holdings.filter(h => h.assetType === 'NPS'), [holdings]);
 
     const stocksValue = stocks.reduce((s, h) => s + h.currentValue, 0);
     const stocksPnl = stocks.reduce((s, h) => s + h.totalGain, 0);
@@ -97,8 +98,29 @@ export default function HoldingsPage() {
             totalInvested: h.totalInvested,
             updatedAt: new Date().toISOString(), // Use current date for SGBs
         }));
-        return [...manualAssets, ...sgbMapped];
-    }, [manualAssets, sgbs]);
+        
+        const npsMapped = nps.map(h => ({
+            _id: h.instrumentId,
+            assetType: 'NPS',
+            name: h.name || h.tickerSymbol || 'NPS',
+            currentValue: h.currentValue,
+            totalInvested: h.totalInvested,
+            lifeCover: 0,
+            updatedAt: new Date().toISOString(), // Use current date for NPS
+        }));
+        
+        const mappedManual = manualAssets.map(a => {
+            const nameUpper = (a.name || '').toUpperCase();
+            if (a.assetType === 'OTHER') {
+                if (nameUpper.startsWith('NPS')) return { ...a, assetType: 'NPS' };
+                if (nameUpper.startsWith('FD')) return { ...a, assetType: 'FD' };
+                if (nameUpper.startsWith('EPF')) return { ...a, assetType: 'EPF' };
+            }
+            return { ...a, lifeCover: (a as any).lifeCover || 0 };
+        });
+
+        return [...mappedManual, ...sgbMapped, ...npsMapped];
+    }, [manualAssets, sgbs, nps]);
 
     const manualValue = combinedOtherAssets.reduce((s, a) => s + (a.currentValue || 0), 0);
     const manualInvested = combinedOtherAssets.reduce((s, a) => s + (a.totalInvested || 0), 0);
@@ -429,6 +451,12 @@ export default function HoldingsPage() {
                                                         <div className={styles.detailLabel}>Current</div>
                                                         <div className={styles.detailFigure}>{formatCurrency(a.currentValue || 0)}</div>
                                                     </div>
+                                                    {a.assetType === 'ULIP' && (a as any).lifeCover > 0 && (
+                                                        <div className={styles.detailItem}>
+                                                            <div className={styles.detailLabel}>Life Cover</div>
+                                                            <div className={styles.detailFigure}>{formatCurrency((a as any).lifeCover)}</div>
+                                                        </div>
+                                                    )}
                                                     <div className={styles.holdingChips}>
                                                         <div className={`${styles.chip} ${returns >= 0 ? styles.up : styles.down}`}>
                                                             <span className={styles.chipLabel}>P&L</span>

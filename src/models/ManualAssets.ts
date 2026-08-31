@@ -25,6 +25,7 @@ export interface IManualAsset extends Document {
     currentValue: number;
     totalInvested: number;
     interestRate: number;
+    lifeCover: number;
     maturityDate: Date | null;
     status: AssetStatus;
     valueHistory: IValueHistoryEntry[];
@@ -72,6 +73,10 @@ const ManualAssetSchema = new Schema<IManualAsset>(
             default: 0,
         },
         interestRate: {
+            type: Number,
+            default: 0,
+        },
+        lifeCover: {
             type: Number,
             default: 0,
         },

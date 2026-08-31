@@ -258,8 +258,6 @@
     color: var(--paper-dim);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin: 8px 16px 12px;
-    border-bottom: 1px solid var(--hairline);
-    padding-bottom: 6px;
+    margin: 16px 22px 12px;
 }
 

@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
         if (['STOCK', 'MUTUAL_FUND', 'SGB', 'NPS'].includes(body.assetType)) {
             const { tickerSymbol, name, schemeCode, exchange, profile, date, quantity, price, fees } = body;
 
-            if (!tickerSymbol || !name || !quantity || !price) {
-                return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+            if (!tickerSymbol || !name || !quantity || !price || typeof tickerSymbol !== 'string' || typeof name !== 'string') {
+                return NextResponse.json({ error: 'Missing or invalid required fields' }, { status: 400 });
             }
 
             // Find or create Instrument
@@ -129,6 +129,7 @@ export async function POST(req: NextRequest) {
             currentValue: body.currentValue,
             totalInvested: body.totalInvested || body.currentValue,
             interestRate: body.interestRate || 0,
+            lifeCover: body.lifeCover || 0,
             maturityDate: body.maturityDate || null,
             status: 'ACTIVE',
             valueHistory: [{
