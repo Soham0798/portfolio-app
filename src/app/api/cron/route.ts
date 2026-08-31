@@ -6,16 +6,26 @@ import ManualAsset from '@/models/ManualAssets';
 import DailySnapshot from '@/models/DailySnapshots';
 import { refreshAllPrices } from '@/lib/prices';
 
-
+export const maxDuration = 60; // Max allowed for Vercel Hobby
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
-    if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authHeader = req.headers.get('authorization');
+    const { searchParams } = new URL(req.url);
+    const secretQuery = searchParams.get('secret');
+    
+    console.log('CRON_SECRET Check:', {
+        authHeader,
+        secretQuery,
+        envSecret: process.env.CRON_SECRET
+    });
+
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && secretQuery !== process.env.CRON_SECRET) {
+        return NextResponse.json({ error: 'Unauthorized', receivedSecret: secretQuery, expectedSecret: process.env.CRON_SECRET }, { status: 401 });
     }
 
     await dbConnect();
-
-    const { searchParams } = new URL(req.url);
     const action = searchParams.get('action');
 
     if (action === 'refresh-prices') {
@@ -189,5 +199,6 @@ async function generateSnapshotInternal() {
 
     return { dateString, totalValue: globalValue, totalDayGain: globalGain };
 }
+ 
 
 

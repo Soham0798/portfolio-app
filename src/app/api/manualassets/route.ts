@@ -7,6 +7,7 @@ import Transaction from '@/models/Transaction';
 import { fetchYahooPrice } from '@/lib/prices/yahoo';
 import { fetchMutualFundNAV } from '@/lib/prices/amfi';
 import { fetchNPSNav } from '@/lib/prices/nps';
+import { fetchSGBPrice } from '@/lib/prices/sgb';
 
 export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
@@ -62,7 +63,15 @@ export async function POST(req: NextRequest) {
 
             // Fetch current price immediately
             try {
-                if (body.assetType === 'STOCK' || body.assetType === 'SGB') {
+                if (body.assetType === 'SGB') {
+                    const priceData = await fetchSGBPrice(tickerSymbol);
+                    if (priceData) {
+                        instrument.currentPrice = priceData.currentPrice;
+                        instrument.previousClose = priceData.previousClose;
+                        instrument.priceLastUpdated = new Date();
+                        await instrument.save();
+                    }
+                } else if (body.assetType === 'STOCK') {
                     const priceData = await fetchYahooPrice(tickerSymbol);
                     if (priceData) {
                         instrument.currentPrice = priceData.currentPrice;

@@ -88,11 +88,20 @@ export default function HoldingsPage() {
     const fundsValue = funds.reduce((s, h) => s + h.currentValue, 0);
     const fundsPnl = funds.reduce((s, h) => s + h.totalGain, 0);
 
-    const sgbsValue = sgbs.reduce((s, h) => s + h.currentValue, 0);
-    const sgbsPnl = sgbs.reduce((s, h) => s + h.totalGain, 0);
+    const combinedOtherAssets = useMemo(() => {
+        const sgbMapped = sgbs.map(h => ({
+            _id: h.instrumentId,
+            assetType: 'SGB',
+            name: h.name || h.tickerSymbol || 'SGB',
+            currentValue: h.currentValue,
+            totalInvested: h.totalInvested,
+            updatedAt: new Date().toISOString(), // Use current date for SGBs
+        }));
+        return [...manualAssets, ...sgbMapped];
+    }, [manualAssets, sgbs]);
 
-    const manualValue = manualAssets.reduce((s, a) => s + (a.currentValue || 0), 0);
-    const manualInvested = manualAssets.reduce((s, a) => s + (a.totalInvested || 0), 0);
+    const manualValue = combinedOtherAssets.reduce((s, a) => s + (a.currentValue || 0), 0);
+    const manualInvested = combinedOtherAssets.reduce((s, a) => s + (a.totalInvested || 0), 0);
     const manualPnl = manualValue - manualInvested;
 
     const handleSort = (section: string, mode: 'value' | 'pnl' | 'day') => {
@@ -115,22 +124,14 @@ export default function HoldingsPage() {
         });
     }, [funds, sortPrefs.funds]);
 
-    const sortedSGBs = useMemo(() => {
-        return [...sgbs].sort((a, b) => {
-            if (sortPrefs.sgb === 'pnl') return b.totalGain - a.totalGain;
-            if (sortPrefs.sgb === 'day') return b.dayGain - a.dayGain;
-            return b.currentValue - a.currentValue;
-        });
-    }, [sgbs, sortPrefs.sgb]);
-
     const sortedManual = useMemo(() => {
-        return [...manualAssets].sort((a, b) => {
+        return [...combinedOtherAssets].sort((a, b) => {
             const pnlA = (a.currentValue || 0) - (a.totalInvested || 0);
             const pnlB = (b.currentValue || 0) - (b.totalInvested || 0);
             if (sortPrefs.manual === 'pnl') return pnlB - pnlA;
             return (b.currentValue || 0) - (a.currentValue || 0);
         });
-    }, [manualAssets, sortPrefs.manual]);
+    }, [combinedOtherAssets, sortPrefs.manual]);
 
     if (loading) {
         return <div className={styles.loading}>Loading holdings...</div>;
@@ -232,27 +233,13 @@ export default function HoldingsPage() {
                         </div>
                     </div>
 
-                    <div className={`${styles.catTab} ${activeTab === 'sgb' ? styles.active : ''}`} onClick={() => setActiveTab('sgb')} style={{ '--cat-color': '#F0A500' } as any}>
-                        <div className={styles.catTabTop}>
-                            <div className={styles.catIcon} style={{ background: 'rgba(240,165,0,0.15)' }}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="#F0A500" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 6v6l4 2" /><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" /></svg>
-                            </div>
-                            <div className={styles.catName}>Gold Bonds</div>
-                            <div className={styles.catCount}>{sgbs.length}</div>
-                        </div>
-                        <div className={styles.catValue}>{formatCurrency(sgbsValue)}</div>
-                        <div className={`${styles.catSub} ${sgbsPnl >= 0 ? styles.up : styles.down}`}>
-                            {sgbsPnl >= 0 ? '▲' : '▼'} {sgbsPnl >= 0 ? '+' : '-'}{formatCurrency(Math.abs(sgbsPnl))}
-                        </div>
-                    </div>
-
                     <div className={`${styles.catTab} ${activeTab === 'manual' ? styles.active : ''}`} onClick={() => setActiveTab('manual')} style={{ '--cat-color': '#D0A24C' } as any}>
                         <div className={styles.catTabTop}>
                             <div className={styles.catIcon} style={{ background: 'rgba(208,162,76,0.15)' }}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="#D0A24C" strokeWidth="2"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" /></svg>
                             </div>
                             <div className={styles.catName}>Other Assets</div>
-                            <div className={styles.catCount}>{manualAssets.length}</div>
+                            <div className={styles.catCount}>{combinedOtherAssets.length}</div>
                         </div>
                         <div className={styles.catValue}>{formatCurrency(manualValue)}</div>
                         <div className={`${styles.catSub} ${manualPnl >= 0 ? styles.up : styles.down}`}>
@@ -358,49 +345,7 @@ export default function HoldingsPage() {
                 </motion.div>
                 )}
 
-                {/* ===== Gold Bonds (SGB) section ===== */}
-                {activeTab === 'sgb' && (
-                <motion.div
-                    key="sgb"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-                    className={styles.sectionCard}
-                >
-                    <div className={styles.sectionHead}>
-                        <div className={styles.sectionHeadLeft}>
-                            <div className={styles.sectionTitle}>Sovereign Gold Bonds</div>
-                            <div className={styles.sectionTotals}>
-                                <span>{formatCurrency(sgbsValue)}</span>
-                                <span className={sgbsPnl >= 0 ? styles.pnl : styles.pnlLoss}>
-                                    {sgbsPnl >= 0 ? '+' : ''}{formatCurrency(sgbsPnl)}
-                                </span>
-                            </div>
-                        </div>
-                        <div className={styles.sortPills}>
-                            <div className={`${styles.sortPill} ${sortPrefs.sgb === 'value' ? styles.active : ''}`} onClick={() => handleSort('sgb', 'value')}>
-                                {sortPrefs.sgb === 'value' && <motion.div layoutId="sortThumb-sgb" className={styles.sortThumb} transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />}
-                                <span style={{position:'relative', zIndex: 1}}>By Value</span>
-                            </div>
-                            <div className={`${styles.sortPill} ${sortPrefs.sgb === 'pnl' ? styles.active : ''}`} onClick={() => handleSort('sgb', 'pnl')}>
-                                {sortPrefs.sgb === 'pnl' && <motion.div layoutId="sortThumb-sgb" className={styles.sortThumb} transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />}
-                                <span style={{position:'relative', zIndex: 1}}>By P&L</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        {sortedSGBs.map((h, i) => (
-                            <SGBRow key={h.instrumentId} holding={h} formatCurrency={formatCurrency} />
-                        ))}
-                        {sortedSGBs.length === 0 && (
-                            <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--paper-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', margin: '16px', border: '1px dashed var(--hairline)' }}>
-                                No Sovereign Gold Bonds found. Add one via <Link href="/dashboard/manualassets" style={{ color: 'var(--accent-primary)' }}>Assets</Link>.
-                            </div>
-                        )}
-                    </div>
-                </motion.div>
-                )}
+
 
                 {/* ===== Manual Assets section ===== */}
                 {activeTab === 'manual' && (
@@ -434,61 +379,74 @@ export default function HoldingsPage() {
                         </div>
                     </div>
                     <div>
-                        {sortedManual.map((a, i) => {
-                            const returns = (a.currentValue || 0) - (a.totalInvested || 0);
-                            const lastUpdated = a.updatedAt ? Math.floor((Date.now() - new Date(a.updatedAt).getTime()) / (1000 * 60 * 60 * 24)) : 0;
-                            let displayName = a.name;
-                            let unitsStr = '';
-                            
-                            const unitMatch = a.name.match(/\s*\(([\d.,]+)\s*(units|g)\)$/i);
-                            if (unitMatch) {
-                                unitsStr = `${unitMatch[1]} ${unitMatch[2] === 'g' ? 'g' : ''}`;
-                                displayName = a.name.replace(unitMatch[0], '');
-                            }
-                            
-                            return (
-                                <motion.div layout initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }} key={a._id} className={styles.holding}>
-                                    <div className={styles.badge} style={{ background: '#D0A24C' }}>{displayName.substring(0, 2).toUpperCase()}</div>
-                                    <div className={styles.holdingMain}>
-                                        <div className={styles.holdingTop}>
-                                            <div>
-                                                <div className={styles.holdingName}>{displayName}</div>
-                                                <div className={styles.holdingFolio}>
-                                                    <span className={styles.manualTag}>Manual</span>
-                                                    Updated {lastUpdated === 0 ? 'today' : `${lastUpdated} days ago`}
+                        {Object.entries(
+                            sortedManual.reduce((acc, curr) => {
+                                if (!acc[curr.assetType]) acc[curr.assetType] = [];
+                                acc[curr.assetType].push(curr);
+                                return acc;
+                            }, {} as Record<string, typeof sortedManual>)
+                        ).map(([type, assets]) => (
+                            <div key={type} className={styles.assetGroup}>
+                                <div className={styles.groupHeader}>{type}</div>
+                                {assets.map((a, i) => {
+                                    const returns = (a.currentValue || 0) - (a.totalInvested || 0);
+                                    const lastUpdated = a.updatedAt ? Math.floor((Date.now() - new Date(a.updatedAt).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                                    let displayName = a.name;
+                                    let unitsStr = '';
+                                    
+                                    const unitMatch = a.name.match(/\s*\(([\d.,]+)\s*(units|g)\)$/i);
+                                    if (unitMatch) {
+                                        unitsStr = `${unitMatch[1]} ${unitMatch[2] === 'g' ? 'g' : ''}`;
+                                        displayName = a.name.replace(unitMatch[0], '');
+                                    }
+                                    
+                                    return (
+                                        <motion.div layout initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }} key={a._id} className={styles.holding}>
+                                            <div className={styles.badge} style={{ background: '#D0A24C' }}>{displayName.substring(0, 2).toUpperCase()}</div>
+                                            <div className={styles.holdingMain}>
+                                                <div className={styles.holdingTop}>
+                                                    <div>
+                                                        <div className={styles.holdingName}>{displayName}</div>
+                                                        <div className={styles.holdingFolio}>
+                                                            <span className={styles.manualTag}>{a.assetType}</span>
+                                                            Updated {lastUpdated === 0 ? 'today' : `${lastUpdated} days ago`}
+                                                        </div>
+                                                    </div>
+                                                    <div className={styles.holdingCmp}>{formatCurrency(a.currentValue || 0)}</div>
                                                 </div>
-                                            </div>
-                                            <div className={styles.holdingCmp}>{formatCurrency(a.currentValue || 0)}</div>
-                                        </div>
-                                        <div className={styles.holdingDetail}>
-                                            {unitsStr && (
-                                                <div className={styles.detailItem}>
-                                                    <div className={styles.detailLabel}>Qty</div>
-                                                    <div className={styles.detailFigure}>{unitsStr}</div>
-                                                </div>
-                                            )}
-                                            <div className={styles.detailItem}>
-                                                <div className={styles.detailLabel}>Invested</div>
-                                                <div className={styles.detailFigure}>{formatCurrency(a.totalInvested || 0)}</div>
-                                            </div>
-                                            <div className={styles.detailItem}>
-                                                <div className={styles.detailLabel}>Current</div>
-                                                <div className={styles.detailFigure}>{formatCurrency(a.currentValue || 0)}</div>
-                                            </div>
-                                            <div className={styles.holdingChips}>
-                                                <div className={`${styles.chip} ${returns >= 0 ? styles.up : styles.down}`}>
-                                                    <span className={styles.chipLabel}>P&L</span>
+                                                <div className={styles.holdingDetail}>
+                                                    {unitsStr && (
+                                                        <div className={styles.detailItem}>
+                                                            <div className={styles.detailLabel}>Qty</div>
+                                                            <div className={styles.detailFigure}>{unitsStr}</div>
+                                                        </div>
+                                                    )}
+                                                    <div className={styles.detailItem}>
+                                                        <div className={styles.detailLabel}>Invested</div>
+                                                        <div className={styles.detailFigure}>{formatCurrency(a.totalInvested || 0)}</div>
+                                                    </div>
+                                                    <div className={styles.detailItem}>
+                                                        <div className={styles.detailLabel}>Current</div>
+                                                        <div className={styles.detailFigure}>{formatCurrency(a.currentValue || 0)}</div>
+                                                    </div>
+                                                    <div className={styles.holdingChips}>
+                                                        <div className={`${styles.chip} ${returns >= 0 ? styles.up : styles.down}`}>
+                                                            <span className={styles.chipLabel}>P&L</span>
                                                     {returns >= 0 ? '▲' : '▼'}{formatCurrency(Math.abs(returns))}
                                                 </div>
-                                                <Link href={`/dashboard/manual-assets/edit/${a._id}`} className={styles.editBtn}>
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="#8A96B5" strokeWidth="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>
-                                                </Link>
+                                                {a.assetType !== 'SGB' && (
+                                                    <Link href={`/dashboard/manual-assets/edit/${a._id}`} className={styles.editBtn}>
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="#8A96B5" strokeWidth="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>
+                                                    </Link>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
-                                </motion.div>
-                            );
-                        })}
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                        ))}
                         {sortedManual.length === 0 && <div style={{ padding: '24px', textAlign: 'center', color: 'var(--paper-dim)' }}>No manual assets found</div>}
                     </div>
                 </motion.div>

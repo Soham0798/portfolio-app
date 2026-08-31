@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        console.log(`NSDL sections: equity=${equitySectionLine}, mf=${mfSectionLine}, sgb=${sgbSectionLine}, nps=${npsSectionLine}`);
+        if (process.env.NODE_ENV !== 'production') console.log(`NSDL sections: equity=${equitySectionLine}, mf=${mfSectionLine}, sgb=${sgbSectionLine}, nps=${npsSectionLine}`);
 
         // ============================================================
         // PASS 2: Parse equities
@@ -309,7 +309,7 @@ export async function POST(req: NextRequest) {
                     notes: 'Imported from NSDL CAS',
                 });
                 results.imported++;
-                console.log(`EQUITY: ${name} | ticker=${tickerSymbol} | shares=${shares} | price=${marketPrice}`);
+                if (process.env.NODE_ENV !== 'production') console.log(`EQUITY: ${name} | ticker=${tickerSymbol} | shares=${shares} | price=${marketPrice}`);
             } catch (err: any) {
                 results.errors.push(`Error importing equity ${name}: ${err.message}`);
                 results.skipped++;
@@ -429,7 +429,7 @@ export async function POST(req: NextRequest) {
                     notes: 'Imported from NSDL CAS',
                 });
                 results.imported++;
-                console.log(`MF: ${schemeName} | units=${units} | avgCost=${avgCost}`);
+                if (process.env.NODE_ENV !== 'production') console.log(`MF: ${schemeName} | units=${units} | avgCost=${avgCost}`);
             } catch (err: any) {
                 results.errors.push(`Error importing MF ${schemeName}: ${err.message}`);
                 results.skipped++;
@@ -529,7 +529,7 @@ export async function POST(req: NextRequest) {
                         });
 
                         results.imported++;
-                        console.log(`SGB: ticker=${tickerSymbol}, units=${units}, value=${currentValue}`);
+                        if (process.env.NODE_ENV !== 'production') console.log(`SGB: ticker=${tickerSymbol}, units=${units}, value=${currentValue}`);
                     } catch (err: any) {
                         results.errors.push(`Error importing SGB: ${err.message}`);
                         results.skipped++;
@@ -599,14 +599,14 @@ export async function POST(req: NextRequest) {
                     totalInvested: data.invested,
                 });
                 results.imported++;
-                console.log(`NPS: ${name} | value=${data.value}`);
+                if (process.env.NODE_ENV !== 'production') console.log(`NPS: ${name} | value=${data.value}`);
             } catch (err: any) {
                 results.errors.push(`Error importing NPS: ${err.message}`);
                 results.skipped++;
             }
         }
 
-        console.log(`NSDL import results: imported=${results.imported}, skipped=${results.skipped}, errors=${results.errors.length}`);
+        if (process.env.NODE_ENV !== 'production') console.log(`NSDL import results: imported=${results.imported}, skipped=${results.skipped}, errors=${results.errors.length}`);
         return NextResponse.json({ results });
     } catch (error: any) {
         console.error('NSDL import error:', error);

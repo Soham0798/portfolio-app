@@ -248,3 +248,18 @@
     .holdingChips { margin-left: 0; width: 100%; justify-content: flex-end; }
     .sectionHead { align-items: flex-start; }
 }
+.assetGroup {
+    margin-bottom: 24px;
+}
+
+.groupHeader {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--paper-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 8px 16px 12px;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 6px;
+}
+

@@ -5,7 +5,7 @@ export function proxy(req: NextRequest) {
     const token = req.cookies.get('portfolio-token')?.value;
     const { pathname } = req.nextUrl;
 
-    const publicPaths = ['/auth/login', '/api/auth/login'];
+    const publicPaths = ['/auth/login', '/api/auth/login', '/api/cron'];
     if (publicPaths.some(path => pathname.startsWith(path))) {
         return NextResponse.next();
     }

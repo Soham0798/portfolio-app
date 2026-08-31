@@ -289,7 +289,7 @@ async function parseGroww(lines: string[], userId: string, profile: string) {
 //   Category rows: single label like "Paints", "Banks" — skip
 //   "Total" row — skip
 async function parseGoldenBulls(lines: string[], userId: string) {
-    console.log(`Starting Golden Bulls parse: ${lines.length} lines`);
+    if (process.env.NODE_ENV !== 'production') console.log(`Starting Golden Bulls parse: ${lines.length} lines`);
     const results = { imported: 0, skipped: 0, errors: [] as string[] };
 
     // Auto-detect delimiter: if tabs are common, use tab; otherwise comma
@@ -350,7 +350,7 @@ async function parseGoldenBulls(lines: string[], userId: string) {
         if (matchedProfile) {
             const numericCells = cols.filter(c => /^\d/.test(c.trim())).length;
             if (numericCells <= 1) {
-                console.log(`Found profile: ${matchedProfile} at line ${i}`);
+                if (process.env.NODE_ENV !== 'production') console.log(`Found profile: ${matchedProfile} at line ${i}`);
                 currentProfile = matchedProfile;
                 headersFound = false;
                 continue;
@@ -369,13 +369,13 @@ async function parseGoldenBulls(lines: string[], userId: string) {
                 marketPrice: findCol(['Market price', 'Market Price']),
             };
             headersFound = true;
-            console.log(`Found headers at line ${i}:`, colMap);
+            if (process.env.NODE_ENV !== 'production') console.log(`Found headers at line ${i}:`, colMap);
             continue;
         }
 
         // Skip until we have both a profile and headers
         if (!currentProfile || !headersFound) {
-            if (i < 20) console.log(`Skipping line ${i} (waiting for profile/headers):`, line);
+            if (i < 20 && process.env.NODE_ENV !== 'production') console.log(`Skipping line ${i} (waiting for profile/headers):`, line);
             continue;
         }
 
@@ -389,7 +389,7 @@ async function parseGoldenBulls(lines: string[], userId: string) {
 
         const scripLower = scrip.toLowerCase().trim();
         if (scripLower === 'total' || scripLower === 'grand total' || scripLower === 'summary' || scripLower.startsWith('total ')) {
-            console.log(`Skipping total row: ${scrip}`);
+            if (process.env.NODE_ENV !== 'production') console.log(`Skipping total row: ${scrip}`);
             continue;
         }
 
@@ -399,7 +399,7 @@ async function parseGoldenBulls(lines: string[], userId: string) {
 
         // Skip rows where numeric fields aren't valid (catches category labels, metadata, etc.)
         if (isNaN(qty) || isNaN(avgPrice) || qty <= 0 || avgPrice <= 0) {
-            console.log(`Skipping invalid numeric data for scrip '${scrip}': qty=${qty}, avgPrice=${avgPrice}`);
+            if (process.env.NODE_ENV !== 'production') console.log(`Skipping invalid numeric data for scrip '${scrip}': qty=${qty}, avgPrice=${avgPrice}`);
             continue;
         }
 
@@ -443,16 +443,16 @@ async function parseGoldenBulls(lines: string[], userId: string) {
                 notes: 'Imported from Golden Bulls (holdings snapshot)',
             });
 
-            console.log(`Imported ${scrip} [${currentProfile}]`);
+            if (process.env.NODE_ENV !== 'production') console.log(`Imported ${scrip} [${currentProfile}]`);
             results.imported++;
         } catch (err: any) {
-            console.error(`Error importing ${scrip}:`, err);
+            if (process.env.NODE_ENV !== 'production') console.error(`Error importing ${scrip}:`, err);
             results.errors.push(`Row ${i + 1} (${scrip}) [${currentProfile}]: ${err.message}`);
             results.skipped++;
         }
     }
 
-    console.log('Golden Bulls parse complete:', results);
+    if (process.env.NODE_ENV !== 'production') console.log('Golden Bulls parse complete:', results);
     return results;
 }
 

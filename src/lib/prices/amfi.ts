@@ -1,48 +1,95 @@
 import { PriceResult } from './yahoo';
 
 
+const navCache = new Map<string, { data: PriceResult, timestamp: number }>();
+const inFlightFetches = new Map<string, Promise<PriceResult | null>>();
+
 export async function fetchMutualFundNAV(schemeCode: string): Promise<PriceResult | null> {
-    try {
-        const res = await fetch(`https://api.mfapi.in/mf/${schemeCode}`, {
-            next: { revalidate: 0 },
-        });
-
-        if (!res.ok) {
-            console.error(`AMFI fetch failed for ${schemeCode}: ${res.status}`);
-            return null;
-        }
-
-        const data = await res.json();
-
-        if (!data.data || data.data.length < 2) {
-            console.warn(`No NAV data for scheme ${schemeCode}`);
-            return null;
-        }
-
-        const latest = parseFloat(data.data[0].nav);
-        const previous = parseFloat(data.data[1].nav);
-
-        return {
-            currentPrice: latest,
-            previousClose: previous,
-        };
-    } catch (error: any) {
-        console.error(`AMFI fetch error for ${schemeCode}:`, error.message);
-        return null;
+    const cached = navCache.get(schemeCode);
+    if (cached && Date.now() - cached.timestamp < 1000 * 60 * 5) {
+        return cached.data; // Cache for 5 mins
     }
+
+    if (inFlightFetches.has(schemeCode)) {
+        return inFlightFetches.get(schemeCode)!;
+    }
+
+    const cleanCode = schemeCode.replace(/[^0-9]/g, '');
+
+    const fetchPromise = (async () => {
+        let retries = 3;
+        let lastStatus = 0;
+        
+        while (retries > 0) {
+            try {
+                const res = await fetch(`https://api.mfapi.in/mf/${cleanCode}`, {
+                    cache: 'no-store',
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                lastStatus = res.status;
+                if (!res.ok) {
+                    if (res.status === 429 || res.status >= 500) {
+                        retries--;
+                        await new Promise(r => setTimeout(r, 1000 + (3 - retries) * 1000));
+                        continue;
+                    }
+                    console.error(`AMFI fetch failed for ${schemeCode}: ${res.status}`);
+                    return null;
+                }
+
+                const data = await res.json();
+                if (!data.data || data.data.length < 2) {
+                    console.warn(`No NAV data for scheme ${schemeCode}`);
+                    return null;
+                }
+
+                return {
+                    currentPrice: parseFloat(data.data[0].nav),
+                    previousClose: parseFloat(data.data[1].nav),
+                };
+            } catch (error: any) {
+                retries--;
+                if (retries === 0) {
+                    console.error(`AMFI fetch error for ${schemeCode}:`, error.message);
+                }
+                await new Promise(r => setTimeout(r, 1000 + (3 - retries) * 1000));
+            }
+        }
+        
+        console.error(`AMFI fetch failed for ${schemeCode} after retries. Last status: ${lastStatus}`);
+        return null;
+    })();
+
+    inFlightFetches.set(schemeCode, fetchPromise);
+    const result = await fetchPromise;
+    inFlightFetches.delete(schemeCode);
+
+    if (result) {
+        navCache.set(schemeCode, { data: result, timestamp: Date.now() });
+    }
+
+    return result;
 }
 
 export async function fetchMutualFundNAVs(
     schemeCodes: string[]
 ): Promise<Map<string, PriceResult>> {
     const results = new Map<string, PriceResult>();
-
+    
+    // Process sequentially but with cache/deduping
     for (const code of schemeCodes) {
         const nav = await fetchMutualFundNAV(code);
         if (nav) {
             results.set(code, nav);
         }
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Small delay if we actually made a network request
+        if (!navCache.has(code) || (Date.now() - navCache.get(code)!.timestamp) < 500) {
+             await new Promise(resolve => setTimeout(resolve, 400));
+        }
     }
 
     return results;

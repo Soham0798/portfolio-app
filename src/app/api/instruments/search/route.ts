@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchAllMutualFunds } from '@/lib/prices/amfi';
-import { searchSGB } from '@/lib/prices/sgb';
+import { searchSGB, fetchAllNSESGBPrices } from '@/lib/prices/sgb';
+import { fetchGoldPriceINR } from '@/lib/prices/gold';
 
 export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
@@ -17,14 +18,26 @@ export async function GET(req: NextRequest) {
 
     try {
         if (type === 'SGB') {
-            const results = searchSGB(query).map(s => ({
-                symbol: s.symbol,
-                name: `${s.name} (Matures ${new Date(s.maturityDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}, ${s.coupon}% p.a.)`,
-                exchange: 'NSE',
-                type: 'SGB',
-                maturityDate: s.maturityDate,
-                coupon: s.coupon,
-            }));
+            // Fetch live NSE prices for all SGBs, fallback to gold rate
+            const [nsePrices, goldQuote] = await Promise.all([
+                fetchAllNSESGBPrices(),
+                fetchGoldPriceINR(),
+            ]);
+
+            const results = searchSGB(query).map(s => {
+                const nsePrice = nsePrices.get(s.symbol);
+                const livePrice = nsePrice?.currentPrice || goldQuote?.currentPrice || null;
+                return {
+                    symbol: s.symbol,
+                    name: `${s.name} (Matures ${new Date(s.maturityDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}, ${s.coupon}% p.a.)`,
+                    exchange: 'NSE',
+                    type: 'SGB',
+                    maturityDate: s.maturityDate,
+                    coupon: s.coupon,
+                    currentPrice: livePrice,
+                    priceSource: nsePrice ? 'NSE' : 'Gold Rate',
+                };
+            });
             return NextResponse.json({ results });
         }
 

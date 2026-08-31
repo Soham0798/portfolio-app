@@ -72,14 +72,15 @@ export default function DashboardPage() {
     const [summary, setSummary] = useState<Summary | null>(null);
     const [snapshots, setSnapshots] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isLiveRefreshing, setIsLiveRefreshing] = useState(false);
 
     const [showBreakdown, setShowBreakdown] = useState(false);
     const [showAgePrompt, setShowAgePrompt] = useState(false);
     const [isSubmittingAge, setIsSubmittingAge] = useState(false);
     const [promptDob, setPromptDob] = useState('');
 
-    const fetchData = async () => {
-        setLoading(true);
+    const fetchData = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const profileParam = profile === 'combined' ? '' : `?profile=${profile}`;
             
@@ -105,12 +106,35 @@ export default function DashboardPage() {
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
+        }
+    };
+
+    const triggerLiveRefresh = async () => {
+        setIsLiveRefreshing(true);
+        try {
+            const res = await fetch('/api/prices/refresh-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ profileId: profile }),
+            });
+            if (res.ok) {
+                // Silently re-fetch dashboard to get the new live prices
+                await fetchData(true);
+            }
+        } catch (err) {
+            console.error('Live refresh failed:', err);
+        } finally {
+            setIsLiveRefreshing(false);
         }
     };
 
     useEffect(() => {
-        fetchData();
+        // Initial load (shows spinner)
+        fetchData().then(() => {
+            // After initial DB load, fetch live prices silently
+            triggerLiveRefresh();
+        });
     }, [profile]);
 
     const handleSaveAge = async () => {
@@ -253,7 +277,19 @@ export default function DashboardPage() {
                 <div className={styles.heroCard}>
                     <div className={styles.topline}>
                         <div className={styles.wordmark}>Portf<span>o</span>lio</div>
-                        <div className={styles.synced}><span className={styles.pulse}></span> Last synced 2 min ago</div>
+                        <div className={styles.synced}>
+                            {isLiveRefreshing ? (
+                                <>
+                                    <span className={styles.pulse} style={{ background: '#f59e0b', boxShadow: '0 0 0 0 rgba(245, 158, 11, 0.7)' }}></span>
+                                    Fetching live market prices...
+                                </>
+                            ) : (
+                                <>
+                                    <span className={styles.pulse}></span>
+                                    Prices are live
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     {/* HERO */}

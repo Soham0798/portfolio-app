@@ -2,11 +2,12 @@ import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
-if (!JWT_SECRET) throw new Error('JWT_SECRET not set');
-
+if (!JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET environment variable is not set.');
+}
 
 const TOKEN_NAME = 'portfolio-token';
-const TOKEN_MAX_AGE = 60 * 60 * 24 * 30;
+const TOKEN_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
 export interface JWTPayload {
     userId: string;

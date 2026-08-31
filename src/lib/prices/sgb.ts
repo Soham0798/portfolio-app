@@ -1,6 +1,5 @@
-// Static list of all RBI Sovereign Gold Bond (SGB) series issued 2015–2024
-// NSE tickers follow the pattern SGBXXXNN.NS
-// Face value is in INR per gram of gold at time of issue
+import { fetchYahooPrice, PriceResult } from './yahoo';
+import { fetchGoldPriceINR } from './gold';
 
 export interface SGBSeries {
     symbol: string;      // NSE ticker e.g. SGBAUG28.NS
@@ -86,3 +85,95 @@ export function searchSGB(query: string): SGBSeries[] {
         return sName.includes(q);
     }).slice(0, 8);
 }
+
+// ---- NSE Live SGB Prices ----
+
+interface NSESGBQuote {
+    symbol: string;
+    ltP: string;       // Last traded price
+    prevClose: string;  // Previous close
+    open: string;
+    high: string;
+    low: string;
+}
+
+// Cache NSE session cookies (they expire, so refresh every 5 min)
+let nseCookieCache: { cookies: string; expires: number } | null = null;
+
+async function getNSECookies(): Promise<string> {
+    if (nseCookieCache && Date.now() < nseCookieCache.expires) {
+        return nseCookieCache.cookies;
+    }
+    const res = await fetch('https://www.nseindia.com', {
+        cache: 'no-store',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+        },
+        redirect: 'follow',
+    });
+    const setCookies = res.headers.getSetCookie?.() || [];
+    const cookieStr = setCookies.map((c: string) => c.split(';')[0]).join('; ');
+    nseCookieCache = { cookies: cookieStr, expires: Date.now() + 5 * 60 * 1000 };
+    return cookieStr;
+}
+
+/** Fetch all live SGB prices from NSE in one call */
+export async function fetchAllNSESGBPrices(): Promise<Map<string, PriceResult>> {
+    const result = new Map<string, PriceResult>();
+    try {
+        const cookies = await getNSECookies();
+        const res = await fetch('https://www.nseindia.com/api/sovereign-gold-bonds', {
+            cache: 'no-store',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/javascript, */*; q=0.01',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://www.nseindia.com/market-data/sovereign-gold-bond',
+                'Cookie': cookies,
+            },
+        });
+        if (!res.ok) return result;
+
+        const data = await res.json();
+        const quotes: NSESGBQuote[] = data.data || [];
+
+        for (const q of quotes) {
+            const ltp = parseFloat(q.ltP);
+            const prev = parseFloat(q.prevClose);
+            if (ltp > 0) {
+                // NSE symbol is e.g. "SGBJUN28", our ticker has ".NS" suffix
+                result.set(`${q.symbol}.NS`, {
+                    currentPrice: ltp,
+                    previousClose: prev || ltp,
+                });
+            }
+        }
+    } catch (err: any) {
+        console.warn('NSE SGB fetch failed:', err.message);
+    }
+    return result;
+}
+
+/** Fetch price for a single SGB symbol. Tries NSE first, falls back to gold rate. */
+export async function fetchSGBPrice(symbol: string): Promise<PriceResult | null> {
+    // 1. Try NSE live SGB prices (most accurate — actual secondary market price)
+    try {
+        const allPrices = await fetchAllNSESGBPrices();
+        const nsePrice = allPrices.get(symbol);
+        if (nsePrice) return nsePrice;
+
+        // Try without .NS suffix match
+        const bareSymbol = symbol.replace('.NS', '');
+        for (const [key, val] of allPrices) {
+            if (key.replace('.NS', '') === bareSymbol) return val;
+        }
+    } catch {
+        // fall through
+    }
+
+    // 2. Fallback: use live gold rate (1 SGB unit ≈ 1 gram of gold)
+    return await fetchGoldPriceINR();
+}
+

@@ -3,6 +3,7 @@ import { fetchYahooPrices, PriceResult } from './yahoo';
 import { fetchMutualFundNAVs } from './amfi';
 import { fetchNPSNavs } from './nps';
 import { fetchGoldPriceINR } from './gold';
+import { fetchAllNSESGBPrices } from './sgb';
 
 export interface RefreshResult {
     updated: number;
@@ -10,21 +11,31 @@ export interface RefreshResult {
     errors: string[];
 }
 
-export async function refreshAllPrices(): Promise<RefreshResult> {
-    const instruments = await Instrument.find({ isActive: true });
+export async function refreshAllPrices(instrumentIds?: string[]): Promise<RefreshResult> {
+    // Note: No userId filter here. This is intentional. The nightly cron
+    // refreshes prices for ALL users' active instruments in a single pass.
+    // Instruments share price data, so a global update is the correct behaviour.
+    const query: any = { isActive: true };
+    if (instrumentIds && instrumentIds.length > 0) {
+        query._id = { $in: instrumentIds };
+    }
+    const instruments = await Instrument.find(query);
     const result: RefreshResult = { updated: 0, failed: 0, errors: [] };
 
     const stocks: typeof instruments = [];
     const mutualFunds: typeof instruments = [];
     const npsSchemes: typeof instruments = [];
     const goldInstruments: typeof instruments = [];
+    const sgbInstruments: typeof instruments = [];
 
     for (const inst of instruments) {
         switch (inst.assetType) {
             case 'STOCK':
             case 'ETF':
-            case 'SGB':
                 stocks.push(inst);
+                break;
+            case 'SGB':
+                sgbInstruments.push(inst);
                 break;
             case 'MUTUAL_FUND':
                 mutualFunds.push(inst);
@@ -108,6 +119,29 @@ export async function refreshAllPrices(): Promise<RefreshResult> {
             } else {
                 result.failed++;
                 result.errors.push(`Gold: failed to fetch price`);
+            }
+        }
+    }
+
+    if (sgbInstruments.length > 0) {
+        // Fetch all SGB prices from NSE in one API call
+        const nsePrices = await fetchAllNSESGBPrices();
+        // Gold rate as fallback for any SGB not found on NSE
+        const goldPrice = nsePrices.size === 0 ? await fetchGoldPriceINR() : null;
+
+        for (const inst of sgbInstruments) {
+            const nsePrice = nsePrices.get(inst.tickerSymbol);
+            const price = nsePrice || goldPrice;
+
+            if (price) {
+                inst.previousClose = price.previousClose;
+                inst.currentPrice = price.currentPrice;
+                inst.priceLastUpdated = new Date();
+                await inst.save();
+                result.updated++;
+            } else {
+                result.failed++;
+                result.errors.push(`SGB ${inst.name}: no price data`);
             }
         }
     }
