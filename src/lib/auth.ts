@@ -1,28 +1,32 @@
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
-const JWT_SECRET = process.env.JWT_SECRET!;
-if (!JWT_SECRET) {
-    throw new Error('FATAL: JWT_SECRET environment variable is not set.');
-}
-
 const TOKEN_NAME = 'portfolio-token';
 const TOKEN_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+
+function getJwtSecret(): string {
+    const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+    if (!secret) {
+        if (process.env.NODE_ENV === 'production') {
+            throw new Error('FATAL: JWT_SECRET environment variable is not set in production.');
+        }
+        return 'dev-jwt-secret-key-change-in-production';
+    }
+    return secret;
+}
 
 export interface JWTPayload {
     userId: string;
     username: string;
 }
 
-
 export function signToken(payload: JWTPayload): string {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_MAX_AGE });
+    return jwt.sign(payload, getJwtSecret(), { expiresIn: TOKEN_MAX_AGE });
 }
-
 
 export function verifyToken(token: string): JWTPayload | null {
     try {
-        return jwt.verify(token, JWT_SECRET) as JWTPayload;
+        return jwt.verify(token, getJwtSecret()) as JWTPayload;
     } catch {
         return null;
     }
