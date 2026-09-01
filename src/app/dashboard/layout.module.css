@@ -49,84 +49,151 @@
   flex: 1;
 }
 
+.groupContainer {
+  display: flex;
+  flex-direction: column;
+}
+
 .groupLabel {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.14em;
+  font-size: 0.65rem;
+  font-weight: 600;
   text-transform: uppercase;
-  color: var(--text-muted);
-  padding: 0 12px;
-  margin-bottom: 8px;
+  letter-spacing: 0.06em;
+  color: #6e7681;
+  margin-bottom: 0.6rem;
+  padding-left: 0.25rem;
 }
 
 .group {
+  margin-bottom: 0;
+}
+
+.navList {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.2rem;
 }
 
 .item {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  color: var(--text-secondary);
-  text-decoration: none;
-  font-size: 14px;
+  gap: 0.75rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 14px;
+  color: #b1bac4;
   font-weight: 500;
-  position: relative;
-  border: 1px solid transparent;
-  transition: background 0.15s ease, color 0.15s ease;
+  font-size: 0.9rem;
+  transition: all 0.12s ease;
   cursor: pointer;
   background: transparent;
   text-align: left;
+  border: 1px solid transparent;
+  font-family: 'Inter', sans-serif;
+  position: relative;
 }
 
-.item svg {
+.item .icon {
+  width: 1.4rem;
+  height: 1.4rem;
   flex-shrink: 0;
-  opacity: 0.75;
-  transition: opacity 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.item:hover {
-  background: var(--bg-card-hover);
-  color: var(--text-primary);
+.item .icon svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  stroke: #8b949e;
+  stroke-width: 1.8;
+  fill: none;
+  transition: stroke 0.12s ease;
 }
 
-.item:hover svg {
-  opacity: 1;
+.item .label {
+  flex: 1;
 }
 
 .item.active {
-  background: var(--bg-glass);
-  color: var(--text-primary);
-  border-color: var(--border-hover);
+  color: #f0f6fc;
 }
 
-.item.active svg {
-  opacity: 1;
-  stroke: var(--accent-primary);
-}
-
-.item.active::before {
-  content: "";
+.activePill {
   position: absolute;
-  left: -16px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 18px;
-  border-radius: 2px;
-  background: var(--accent-primary);
-  box-shadow: var(--shadow-glow);
+  inset: 0;
+  background: #1f2937;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 0;
+}
+
+.item.active .icon svg {
+  stroke: #f0f6fc;
+}
+
+.item:not(.active):hover {
+  background: #1c2128;
+  border-color: #21262d;
+  color: #f0f6fc;
+}
+
+.item:not(.active):hover .icon svg {
+  stroke: #f0f6fc;
+}
+
+.divider {
+  height: 1px;
+  background: #21262d;
+  margin: 0.5rem 0 1.25rem 0;
+  border: none;
+}
+
+/* Light mode overrides */
+:global(:root[data-theme='light']) .groupLabel {
+  color: #4f658d;
+}
+
+:global(:root[data-theme='light']) .item {
+  color: #2b405e;
+}
+
+:global(:root[data-theme='light']) .item .icon svg {
+  stroke: #6b85a6;
+}
+
+:global(:root[data-theme='light']) .item.active {
+  color: #0b1a2e;
+}
+
+:global(:root[data-theme='light']) .activePill {
+  background: #eef5ff;
+  border-color: #d0e0f0;
+}
+
+:global(:root[data-theme='light']) .item.active .icon svg {
+  stroke: #0b1a2e;
+}
+
+:global(:root[data-theme='light']) .item:not(.active):hover {
+  background: #f2f8ff;
+  border-color: #dce8f5;
+  color: #0b1a2e;
+}
+
+:global(:root[data-theme='light']) .item:not(.active):hover .icon svg {
+  stroke: #0b1a2e;
+}
+
+:global(:root[data-theme='light']) .divider {
+  background: #e2eaf2;
 }
 
 .kbd {
   margin-left: auto;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
-  color: var(--text-muted);
+  color: #6e7681;
   opacity: 0;
   transition: opacity 0.15s ease;
 }

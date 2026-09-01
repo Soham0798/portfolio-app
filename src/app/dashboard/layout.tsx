@@ -17,11 +17,11 @@ const NAV_GROUPS = [
                 label: 'Dashboard',
                 path: '/dashboard',
                 icon: (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
-                        <rect x="1.5" y="1.5" width="6" height="6" rx="1.2" />
-                        <rect x="8.5" y="1.5" width="6" height="6" rx="1.2" />
-                        <rect x="1.5" y="8.5" width="6" height="6" rx="1.2" />
-                        <rect x="8.5" y="8.5" width="6" height="6" rx="1.2" />
+                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                        <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                        <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                        <rect x="14" y="14" width="7" height="7" rx="1.5" />
                     </svg>
                 )
             },
@@ -29,10 +29,9 @@ const NAV_GROUPS = [
                 label: 'Holdings',
                 path: '/dashboard/holdings',
                 icon: (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
-                        <path d="M1.5 12.5V3.5C1.5 2.9 2 2.5 2.5 2.5H13.5C14 2.5 14.5 2.9 14.5 3.5V12.5" strokeLinecap="round" />
-                        <path d="M1.5 12.5H14.5" strokeLinecap="round" />
-                        <path d="M4 9.5L6.5 7L8.5 8.5L12 5" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="7" width="20" height="14" rx="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                     </svg>
                 )
             }
@@ -45,9 +44,11 @@ const NAV_GROUPS = [
                 label: 'Transactions',
                 path: '/dashboard/transactions',
                 icon: (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
-                        <path d="M3 5.5H13M13 5.5L10.5 3M13 5.5L10.5 8" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M13 10.5H3M3 10.5L5.5 8M3 10.5L5.5 13" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="17 1 21 5 17 9" />
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                        <polyline points="7 23 3 19 7 15" />
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
                     </svg>
                 )
             },
@@ -55,9 +56,12 @@ const NAV_GROUPS = [
                 label: 'History',
                 path: '/dashboard/history',
                 icon: (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
-                        <circle cx="8" cy="8" r="6.2" />
-                        <path d="M8 4.8V8L10.2 9.6" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
                     </svg>
                 )
             }
@@ -70,9 +74,9 @@ const NAV_GROUPS = [
                 label: 'Assets',
                 path: '/dashboard/manualassets',
                 icon: (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
-                        <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
-                        <path d="M8 6.2V10.2M6 8.2H10" strokeLinecap="round" />
+                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                     </svg>
                 )
             },
@@ -80,9 +84,10 @@ const NAV_GROUPS = [
                 label: 'Instruments',
                 path: '/dashboard/instruments',
                 icon: (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
-                        <path d="M4 3V13M4 5.5H8.5C9.5 5.5 9.5 3 8.5 3H4" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M4 9H10C11 9 11 11.5 10 11.5H4" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
                     </svg>
                 )
             },
@@ -90,9 +95,10 @@ const NAV_GROUPS = [
                 label: 'Import',
                 path: '/dashboard/import',
                 icon: (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
-                        <path d="M8 2V10.5M8 10.5L5 7.5M8 10.5L11 7.5" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M2.5 12.5V13C2.5 13.55 2.95 14 3.5 14H12.5C13.05 14 13.5 13.55 13.5 13V12.5" strokeLinecap="round" />
+                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
                 )
             },
@@ -100,9 +106,10 @@ const NAV_GROUPS = [
                 label: 'Transfer Data',
                 path: '/dashboard/transfer',
                 icon: (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
-                        <path d="M4 6H12M12 6L9.5 3.5M12 6L9.5 8.5" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M12 10H4M4 10L6.5 7.5M4 10L6.5 12.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M7 9l5 5 5-5" />
+                        <path d="M12 4v10" />
+                        <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
                     </svg>
                 )
             }
@@ -209,20 +216,32 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <nav className={styles.nav}>
-                    {NAV_GROUPS.map((group) => (
-                        <div key={group.label} className={styles.group}>
-                            <div className={styles.groupLabel}>{group.label}</div>
-                            {group.items.map((item) => (
-                                <button
-                                    key={item.path}
-                                    className={`${styles.item} ${pathname === item.path ? styles.active : ''}`}
-                                    onClick={() => { router.push(item.path); setMobileOpen(false); }}
-                                >
-                                    {item.icon}
-                                    {item.label}
-                                    {'kbd' in item && (item as any).kbd && <span className={styles.kbd}>{(item as any).kbd}</span>}
-                                </button>
-                            ))}
+                    {NAV_GROUPS.map((group, index) => (
+                        <div key={group.label} className={styles.groupContainer}>
+                            <div className={styles.group}>
+                                <div className={styles.groupLabel}>{group.label}</div>
+                                <div className={styles.navList}>
+                                    {group.items.map((item) => (
+                                        <button
+                                            key={item.path}
+                                            className={`${styles.item} ${pathname === item.path ? styles.active : ''}`}
+                                            onClick={() => { router.push(item.path); setMobileOpen(false); }}
+                                        >
+                                            {pathname === item.path && (
+                                                <motion.div
+                                                    layoutId="nav-active-pill"
+                                                    className={styles.activePill}
+                                                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                                                />
+                                            )}
+                                            <span className={styles.icon} style={{ position: 'relative', zIndex: 1 }}>{item.icon}</span>
+                                            <span className={styles.label} style={{ position: 'relative', zIndex: 1 }}>{item.label}</span>
+                                            {'kbd' in item && (item as any).kbd && <span className={styles.kbd} style={{ position: 'relative', zIndex: 1 }}>{(item as any).kbd}</span>}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            {index < NAV_GROUPS.length - 1 && <hr className={styles.divider} />}
                         </div>
                     ))}
                 </nav>
@@ -341,7 +360,17 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 </header>
 
                 <div className={styles.content}>
-                    {children}
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={pathname}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                        >
+                            {children}
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
             </main>
         </div>
