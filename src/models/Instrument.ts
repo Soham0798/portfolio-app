@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export const AssetTypes = [
-    'STOCK', 'MUTUAL_FUND', 'NPS', 'SGB', 'GOLD', 'ETF', 'BOND'
+    'STOCK', 'MUTUAL_FUND', 'NPS', 'SGB', 'GOLD', 'SILVER', 'ETF', 'BOND'
 ] as const;
 
 export type AssetType = typeof AssetTypes[number];

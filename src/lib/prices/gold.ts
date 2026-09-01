@@ -56,3 +56,47 @@ export async function fetchGoldPriceINR(): Promise<PriceResult | null> {
     return null;
 }
 
+
+export async function fetchSilverPriceINR(): Promise<PriceResult | null> {
+    try {
+        const [silverQuote, usdInrQuote] = await Promise.all([
+            fetchYahooPrice('SI=F'),
+            fetchYahooPrice('USDINR=X'),
+        ]);
+
+        if (silverQuote?.currentPrice && usdInrQuote?.currentPrice) {
+            const silverUSD = silverQuote.currentPrice;
+            const silverPrevUSD = silverQuote.previousClose || silverUSD;
+            const usdInr = usdInrQuote.currentPrice;
+
+            const rawCurrentPerGram = (silverUSD * usdInr) / TROY_OUNCE_TO_GRAMS;
+            const rawPrevPerGram = (silverPrevUSD * usdInr) / TROY_OUNCE_TO_GRAMS;
+
+            const currentPricePerGram = rawCurrentPerGram * INDIA_IMPORT_DUTY_MULTIPLIER;
+            const previousPricePerGram = rawPrevPerGram * INDIA_IMPORT_DUTY_MULTIPLIER;
+
+            return {
+                currentPrice: Math.round(currentPricePerGram),
+                previousClose: Math.round(previousPricePerGram),
+            };
+        }
+    } catch (err: any) {
+        console.warn('International silver fetch failed, trying domestic ETF fallback...', err.message);
+    }
+
+    try {
+        const silverBees = await fetchYahooPrice('SILVERBEES.NS');
+        if (silverBees?.currentPrice) {
+            const currentPerGram = silverBees.currentPrice; // SILVERBEES tracks ~1g
+            const prevPerGram = silverBees.previousClose || silverBees.currentPrice;
+            return {
+                currentPrice: Math.round(currentPerGram),
+                previousClose: Math.round(prevPerGram),
+            };
+        }
+    } catch (err: any) {
+        console.error('All silver price sources failed:', err.message);
+    }
+
+    return null;
+}

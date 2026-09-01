@@ -476,7 +476,7 @@
 
 .stockPills {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.4rem;
   margin-bottom: 1.75rem;
   overflow-x: auto;

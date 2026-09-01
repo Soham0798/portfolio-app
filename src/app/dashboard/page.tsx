@@ -98,7 +98,16 @@ export default function DashboardPage() {
             setInsights(data.insights || []);
             setHealthScore(data.healthScore || null);
             setSummary(data.summary || null);
-            setSnapshots(snapData.snapshots || []);
+            let processedSnapshots = snapData.snapshots || [];
+            if (profile !== 'combined') {
+                processedSnapshots = processedSnapshots.map((s: any) => {
+                    if (s.byProfile && s.byProfile[profile]) {
+                        return { ...s, ...s.byProfile[profile] };
+                    }
+                    return s;
+                });
+            }
+            setSnapshots(processedSnapshots);
 
             if (data.summary && !data.summary.isProfileConfigured && profile !== 'combined') {
                 setShowAgePrompt(true);
@@ -383,7 +392,7 @@ export default function DashboardPage() {
                 <div className={styles.section}>
                     <div className={styles.sectionHead}>
                         <div className={styles.sectionTitle}>Today's suggestions</div>
-                        <div className={styles.sectionSub}>{insights.length} need attention</div>
+                        <div className={styles.sectionSub}>{insights.filter(i => i.id !== 'stay-course').length} need attention</div>
                     </div>
 
                     {insights.map((insight, idx) => {

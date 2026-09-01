@@ -34,7 +34,7 @@ interface SearchResult {
 }
 
 const MANUAL_TYPES = ['FD', 'EPF', 'PPF', 'ULIP'];
-const MARKET_TYPES = ['STOCK', 'MUTUAL_FUND', 'SGB', 'NPS'];
+const MARKET_TYPES = ['STOCK', 'MUTUAL_FUND', 'SGB', 'NPS', 'GOLD', 'SILVER'];
 
 export default function AssetsPage() {
     const { profile } = useProfile();
@@ -46,6 +46,22 @@ export default function AssetsPage() {
     const [formError, setFormError] = useState('');
     const [formSuccess, setFormSuccess] = useState('');
     const [isLiveRefreshing, setIsLiveRefreshing] = useState(false);
+    const [liveMetalsPrice, setLiveMetalsPrice] = useState<{ gold: number | null, silver: number | null }>({ gold: null, silver: null });
+
+    useEffect(() => {
+        const fetchMetals = async () => {
+            try {
+                const res = await fetch('/api/prices/metals');
+                if (res.ok) {
+                    const data = await res.json();
+                    setLiveMetalsPrice({ gold: data.gold, silver: data.silver });
+                }
+            } catch (err) {
+                console.error('Failed to fetch metal prices', err);
+            }
+        };
+        fetchMetals();
+    }, []);
 
     // Manual asset form
     const [form, setForm] = useState({
@@ -257,7 +273,7 @@ export default function AssetsPage() {
         setFormSuccess('');
         
         // If it's a new entry, require search selection
-        if (!editingId && !selectedInstrument) {
+        if (!editingId && !selectedInstrument && !['GOLD', 'SILVER'].includes(form.assetType)) {
             setFormError('Please search and select an instrument first.');
             return;
         }
@@ -276,10 +292,10 @@ export default function AssetsPage() {
             } : {
                 assetType: form.assetType,
                 profile: marketForm.profile,
-                tickerSymbol: selectedInstrument!.symbol,
-                name: selectedInstrument!.name,
-                schemeCode: selectedInstrument!.schemeCode || null,
-                exchange: selectedInstrument!.exchange || '',
+                tickerSymbol: ['GOLD', 'SILVER'].includes(form.assetType) ? `PHYSICAL_${form.assetType}` : selectedInstrument!.symbol,
+                name: ['GOLD', 'SILVER'].includes(form.assetType) ? `Physical ${form.assetType === 'GOLD' ? 'Gold' : 'Silver'}` : selectedInstrument!.name,
+                schemeCode: selectedInstrument?.schemeCode || null,
+                exchange: selectedInstrument?.exchange || '',
                 date: marketForm.date,
                 quantity: parseFloat(marketForm.quantity),
                 price: parseFloat(marketForm.price),
@@ -652,7 +668,7 @@ export default function AssetsPage() {
                         {/* Stock pills (Asset Type Tabs) */}
                         {!editingId && (
                             <div className={styles.stockPills}>
-                                {['STOCK', 'MUTUAL_FUND', 'FD', 'EPF', 'PPF', 'NPS', 'SGB', 'ULIP'].map((t) => (
+                                {['STOCK', 'MUTUAL_FUND', 'FD', 'EPF', 'PPF', 'NPS', 'SGB', 'GOLD', 'SILVER', 'ULIP'].map((t) => (
                                     <span
                                         key={t}
                                         className={`${styles.pill} ${form.assetType === t ? styles.pillHighlight : ''}`}
@@ -661,6 +677,14 @@ export default function AssetsPage() {
                                             setSearchQuery('');
                                             setSelectedInstrument(null);
                                             setSearchResults([]);
+                                            
+                                            if (t === 'GOLD' && liveMetalsPrice.gold) {
+                                                setMarketForm(prev => ({ ...prev, price: liveMetalsPrice.gold!.toString() }));
+                                            } else if (t === 'SILVER' && liveMetalsPrice.silver) {
+                                                setMarketForm(prev => ({ ...prev, price: liveMetalsPrice.silver!.toString() }));
+                                            } else {
+                                                setMarketForm(prev => ({ ...prev, price: '' }));
+                                            }
                                         }}
                                     >
                                         {t === 'MUTUAL_FUND' ? 'MF' : t}
@@ -672,48 +696,56 @@ export default function AssetsPage() {
                         {/* ========== MARKET ASSET FORM (Stock / MF) ========== */}
                         {isMarketType ? (
                             <form onSubmit={handleMarketSubmit}>
-                                <div className={styles.searchSection} ref={searchRef}>
-                                    <span className={styles.searchLabel}>Search {form.assetType === 'STOCK' ? 'Stock' : form.assetType === 'MUTUAL_FUND' ? 'Mutual Fund' : form.assetType === 'NPS' ? 'NPS Scheme' : 'SGB'}</span>
-                                    <div className={styles.searchWrapper}>
-                                        <input
-                                            type="text"
-                                            placeholder={form.assetType === 'STOCK' ? 'e.g. Reliance, HDFC Bank...' : form.assetType === 'MUTUAL_FUND' ? 'e.g. Parag Parikh, Motilal Oswal...' : form.assetType === 'NPS' ? 'e.g. SBI Pension Fund...' : 'e.g. SGB 2020-21, Aug 2028, Series IV...'}
-                                            value={searchQuery}
-                                            onChange={(e) => handleSearchInput(e.target.value)}
-                                            autoComplete="off"
-                                        />
-                                        <span className={styles.searchIcon}>⌕</span>
-                                    </div>
-                                    {searchLoading && <div className={styles.searchHint}>Searching...</div>}
-
-                                    {showDropdown && searchResults.length > 0 && (
-                                        <div className={styles.dropdown} style={{ marginTop: '0.5rem', borderRadius: '16px' }}>
-                                            {searchResults.map((r, i) => (
-                                                <button
-                                                    key={i}
-                                                    type="button"
-                                                    className={styles.dropdownItem}
-                                                    onClick={() => handleSelectInstrument(r)}
-                                                >
-                                                    <span className={styles.dropdownName}>{r.name}</span>
-                                                    <span className={styles.dropdownTicker}>{r.symbol}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {showDropdown && searchResults.length === 0 && searchQuery.length >= 2 && !searchLoading && (
-                                        <div className={styles.dropdown} style={{ marginTop: '0.5rem', borderRadius: '16px' }}>
-                                            <div className={styles.dropdownEmpty}>No results found</div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {selectedInstrument && (
+                                {['GOLD', 'SILVER'].includes(form.assetType) ? (
                                     <div className={styles.selectedBadge} style={{ marginBottom: '1rem', borderRadius: '40px', background: '#f2f7ff', border: '1px solid #1a5cff', color: '#1a5cff' }}>
-                                        ✓ {selectedInstrument.name}
-                                        {selectedInstrument.symbol && <span className={styles.selectedTicker}>{selectedInstrument.symbol}</span>}
+                                        ✓ Physical {form.assetType === 'GOLD' ? 'Gold' : 'Silver'} (Live pricing)
                                     </div>
+                                ) : (
+                                    <>
+                                        <div className={styles.searchSection} ref={searchRef}>
+                                            <span className={styles.searchLabel}>Search {form.assetType === 'STOCK' ? 'Stock' : form.assetType === 'MUTUAL_FUND' ? 'Mutual Fund' : form.assetType === 'NPS' ? 'NPS Scheme' : 'SGB'}</span>
+                                            <div className={styles.searchWrapper}>
+                                                <input
+                                                    type="text"
+                                                    placeholder={form.assetType === 'STOCK' ? 'e.g. Reliance, HDFC Bank...' : form.assetType === 'MUTUAL_FUND' ? 'e.g. Parag Parikh, Motilal Oswal...' : form.assetType === 'NPS' ? 'e.g. SBI Pension Fund...' : 'e.g. SGB 2020-21, Aug 2028, Series IV...'}
+                                                    value={searchQuery}
+                                                    onChange={(e) => handleSearchInput(e.target.value)}
+                                                    autoComplete="off"
+                                                />
+                                                <span className={styles.searchIcon}>⌕</span>
+                                            </div>
+                                            {searchLoading && <div className={styles.searchHint}>Searching...</div>}
+
+                                            {showDropdown && searchResults.length > 0 && (
+                                                <div className={styles.dropdown} style={{ marginTop: '0.5rem', borderRadius: '16px' }}>
+                                                    {searchResults.map((r, i) => (
+                                                        <button
+                                                            key={i}
+                                                            type="button"
+                                                            className={styles.dropdownItem}
+                                                            onClick={() => handleSelectInstrument(r)}
+                                                        >
+                                                            <span className={styles.dropdownName}>{r.name}</span>
+                                                            <span className={styles.dropdownTicker}>{r.symbol}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {showDropdown && searchResults.length === 0 && searchQuery.length >= 2 && !searchLoading && (
+                                                <div className={styles.dropdown} style={{ marginTop: '0.5rem', borderRadius: '16px' }}>
+                                                    <div className={styles.dropdownEmpty}>No results found</div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {selectedInstrument && (
+                                            <div className={styles.selectedBadge} style={{ marginBottom: '1rem', borderRadius: '40px', background: '#f2f7ff', border: '1px solid #1a5cff', color: '#1a5cff' }}>
+                                                ✓ {selectedInstrument.name}
+                                                {selectedInstrument.symbol && <span className={styles.selectedTicker}>{selectedInstrument.symbol}</span>}
+                                            </div>
+                                        )}
+                                    </>
                                 )}
 
                                 <div className={styles.formGrid}>
@@ -723,13 +755,13 @@ export default function AssetsPage() {
                                     </div>
 
                                     <div className={styles.fieldGroup}>
-                                        <label>{form.assetType === 'SGB' ? 'Quantity (in Grams)' : 'Quantity'}</label>
+                                        <label>{['SGB', 'GOLD', 'SILVER'].includes(form.assetType) ? 'Quantity (in Grams)' : 'Quantity'}</label>
                                         <input type="number" className={styles.inputField} placeholder="0" step="any" value={marketForm.quantity} onChange={(e) => setMarketForm({ ...marketForm, quantity: e.target.value })} required />
                                     </div>
 
                                     <div className={styles.fieldGroup}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <label>{form.assetType === 'SGB' ? 'Gold Rate (₹/gram)' : 'Price per unit (₹)'}</label>
+                                            <label>{['SGB', 'GOLD'].includes(form.assetType) ? 'Gold Rate (₹/gram)' : form.assetType === 'SILVER' ? 'Silver Rate (₹/gram)' : 'Price per unit (₹)'}</label>
                                             {form.assetType === 'SGB' && selectedInstrument?.currentPrice && (
                                                 <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>Live: ₹{selectedInstrument.currentPrice.toLocaleString('en-IN')}/g</span>
                                             )}

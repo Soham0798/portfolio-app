@@ -8,6 +8,7 @@ import { fetchYahooPrice } from '@/lib/prices/yahoo';
 import { fetchMutualFundNAV } from '@/lib/prices/amfi';
 import { fetchNPSNav } from '@/lib/prices/nps';
 import { fetchSGBPrice } from '@/lib/prices/sgb';
+import { fetchGoldPriceINR, fetchSilverPriceINR } from '@/lib/prices/gold';
 
 export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
@@ -36,8 +37,8 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
 
-        // ========== MARKET ASSET FLOW (Stock / Mutual Fund / SGB / NPS) ==========
-        if (['STOCK', 'MUTUAL_FUND', 'SGB', 'NPS'].includes(body.assetType)) {
+        // ========== MARKET ASSET FLOW (Stock / Mutual Fund / SGB / NPS / Gold / Silver) ==========
+        if (['STOCK', 'MUTUAL_FUND', 'SGB', 'NPS', 'GOLD', 'SILVER'].includes(body.assetType)) {
             const { tickerSymbol, name, schemeCode, exchange, profile, date, quantity, price, fees } = body;
 
             if (!tickerSymbol || !name || !quantity || !price || typeof tickerSymbol !== 'string' || typeof name !== 'string') {
@@ -92,6 +93,22 @@ export async function POST(req: NextRequest) {
                     if (navData) {
                         instrument.currentPrice = navData.currentPrice;
                         instrument.previousClose = navData.previousClose;
+                        instrument.priceLastUpdated = new Date();
+                        await instrument.save();
+                    }
+                } else if (body.assetType === 'GOLD') {
+                    const priceData = await fetchGoldPriceINR();
+                    if (priceData) {
+                        instrument.currentPrice = priceData.currentPrice;
+                        instrument.previousClose = priceData.previousClose;
+                        instrument.priceLastUpdated = new Date();
+                        await instrument.save();
+                    }
+                } else if (body.assetType === 'SILVER') {
+                    const priceData = await fetchSilverPriceINR();
+                    if (priceData) {
+                        instrument.currentPrice = priceData.currentPrice;
+                        instrument.previousClose = priceData.previousClose;
                         instrument.priceLastUpdated = new Date();
                         await instrument.save();
                     }

@@ -2,7 +2,7 @@ import Instrument from '@/models/Instrument';
 import { fetchYahooPrices, PriceResult } from './yahoo';
 import { fetchMutualFundNAVs } from './amfi';
 import { fetchNPSNavs } from './nps';
-import { fetchGoldPriceINR } from './gold';
+import { fetchGoldPriceINR, fetchSilverPriceINR } from './gold';
 import { fetchAllNSESGBPrices } from './sgb';
 
 export interface RefreshResult {
@@ -26,6 +26,7 @@ export async function refreshAllPrices(instrumentIds?: string[]): Promise<Refres
     const mutualFunds: typeof instruments = [];
     const npsSchemes: typeof instruments = [];
     const goldInstruments: typeof instruments = [];
+    const silverInstruments: typeof instruments = [];
     const sgbInstruments: typeof instruments = [];
 
     for (const inst of instruments) {
@@ -45,6 +46,9 @@ export async function refreshAllPrices(instrumentIds?: string[]): Promise<Refres
                 break;
             case 'GOLD':
                 goldInstruments.push(inst);
+                break;
+            case 'SILVER':
+                silverInstruments.push(inst);
                 break;
         }
     }
@@ -119,6 +123,23 @@ export async function refreshAllPrices(instrumentIds?: string[]): Promise<Refres
             } else {
                 result.failed++;
                 result.errors.push(`Gold: failed to fetch price`);
+            }
+        }
+    }
+
+    if (silverInstruments.length > 0) {
+        const silverPrice = await fetchSilverPriceINR();
+
+        for (const inst of silverInstruments) {
+            if (silverPrice) {
+                inst.previousClose = silverPrice.previousClose;
+                inst.currentPrice = silverPrice.currentPrice;
+                inst.priceLastUpdated = new Date();
+                await inst.save();
+                result.updated++;
+            } else {
+                result.failed++;
+                result.errors.push(`Silver: failed to fetch price`);
             }
         }
     }

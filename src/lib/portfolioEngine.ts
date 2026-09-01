@@ -192,9 +192,125 @@ export function generateInsights(data: PortfolioData): Insight[] {
             actionLabel: 'Fix asset mix',
             actionHref: '/dashboard/holdings'
         });
+    } else if (actualEquityPct > expectedEquityPct + 15) {
+        insights.push({
+            id: 'age-risk-high',
+            type: 'Rebalance',
+            message: `At age ${data.userProfile.age}, your portfolio is highly aggressive (${Math.round(actualEquityPct)}% equity vs recommended ${expectedEquityPct}%). Consider diversifying to protect your wealth.`,
+            actionLabel: 'Review exposure',
+            actionHref: '/dashboard/holdings'
+        });
     }
 
+    // Emergency Fund check
+    if (data.userProfile.monthlyExpenses > 0) {
+        const monthsOfLiquidity = liquidAssets / data.userProfile.monthlyExpenses;
+        if (monthsOfLiquidity < 3) {
+            insights.push({
+                id: 'emergency-fund',
+                type: 'Urgent',
+                message: `Your liquid assets only cover ${monthsOfLiquidity.toFixed(1)} months of expenses. Aim for 3-6 months to build a secure emergency fund.`,
+                actionLabel: 'Add liquid assets',
+                actionHref: '/dashboard/manualassets'
+            });
+        }
+    }
 
+    // Debt Burden
+    const totalLiabilities = data.liabilities.reduce((sum, l) => sum + l.outstanding, 0);
+    if (totalAssets > 0 && totalLiabilities / totalAssets > 0.5) {
+        insights.push({
+            id: 'debt-burden',
+            type: 'Urgent',
+            message: `Your debt is over 50% of your total assets. Focus on aggressively paying down high-interest liabilities to reduce financial stress.`,
+            actionLabel: 'View liabilities',
+            actionHref: '/dashboard/liabilities'
+        });
+    }
+
+    // Insurance Adequacy
+    if (data.userProfile.monthlyIncome > 0) {
+        const recommendedCover = data.userProfile.monthlyIncome * 12 * 10;
+        if (data.userProfile.insuranceCover < recommendedCover * 0.5) {
+            insights.push({
+                id: 'insurance-gap',
+                type: 'Urgent',
+                message: `Your current life cover is critically low compared to your income. A standard rule of thumb is 10x your annual income (₹${(recommendedCover / 100000).toFixed(1)}L).`,
+                actionLabel: 'Update insurance',
+                actionHref: '/dashboard/settings'
+            });
+        }
+    }
+
+    // Investment Suggestions (Portfolio Gaps)
+    let hasGold = false;
+    let hasFixedIncome = false;
+    data.assets.forEach(a => {
+        if (a.type === 'SGB' || a.type === 'GOLD') hasGold = true;
+        if (a.type === 'FD' || a.type === 'EPF' || a.type === 'PPF' || a.type === 'BOND') hasFixedIncome = true;
+    });
+
+    if (totalAssets <= 1) {
+        insights.push({
+            id: 'start-investing',
+            type: 'Opportunity',
+            message: `Your portfolio is empty. Consider starting your investment journey with broad-market Index Funds or a simple Fixed Deposit to get the ball rolling.`,
+            actionLabel: 'Add your first asset',
+            actionHref: '/dashboard/manualassets'
+        });
+    }
+
+    if (data.userProfile.monthlyExpenses === 0 || data.userProfile.monthlyIncome === 0) {
+        insights.push({
+            id: 'setup-profile',
+            type: 'Urgent',
+            message: `Your financial profile is incomplete. Add your monthly income and expenses to unlock personalized insights like emergency fund checks and insurance adequacy.`,
+            actionLabel: 'Complete profile',
+            actionHref: '/dashboard/planning'
+        });
+    }
+
+    if (!hasGold && totalAssets > 100000) {
+        insights.push({
+            id: 'suggest-gold',
+            type: 'Opportunity',
+            message: `You have zero exposure to Gold. Consider allocating 5-10% of your portfolio to Sovereign Gold Bonds (SGBs) as a hedge against inflation and market volatility.`,
+            actionLabel: 'Explore Assets',
+            actionHref: '/dashboard/manualassets'
+        });
+    }
+
+    if (!hasFixedIncome && data.userProfile.age > 25 && totalAssets > 50000) {
+        insights.push({
+            id: 'suggest-fixed-income',
+            type: 'Opportunity',
+            message: `Your portfolio lacks stable fixed-income assets (like PPF or FDs). Building a debt foundation adds stability during market corrections and provides guaranteed returns.`,
+            actionLabel: 'Add Fixed Income',
+            actionHref: '/dashboard/manualassets'
+        });
+    }
+
+    const excessLiquidity = liquidAssets - (data.userProfile.monthlyExpenses * 6);
+    if (excessLiquidity > 100000 && totalLiabilities === 0) {
+        insights.push({
+            id: 'suggest-invest-cash',
+            type: 'Opportunity',
+            message: `You have ₹${(excessLiquidity / 100000).toFixed(1)}L in excess idle cash. Consider deploying this into Index Funds or Fixed Deposits rather than letting inflation erode it.`,
+            actionLabel: 'Invest now',
+            actionHref: '/dashboard/manualassets'
+        });
+    }
+
+    // Generic Insight if none are triggered
+    if (insights.length === 0) {
+        insights.push({
+            id: 'stay-course',
+            type: 'Opportunity',
+            message: `Your portfolio is looking well-balanced and healthy! Keep investing consistently to reach your long-term goals.`,
+            actionLabel: 'View performance',
+            actionHref: '/dashboard/history'
+        });
+    }
 
     return insights;
 }
