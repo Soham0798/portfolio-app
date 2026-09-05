@@ -84,42 +84,49 @@
 }
 
 .filterChip {
-    padding: 6px 14px;
-    background: var(--bg-card, rgba(255, 255, 255, 0.04));
-    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all var(--transition-fast);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    padding: 7px 8px 7px 14px;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all .15s;
+    cursor: pointer;
 }
 
 .filterChip:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .filterChipActive {
+    border-color: transparent !important;
     background: var(--accent-primary, #3b82f6) !important;
-    border-color: var(--accent-primary, #3b82f6) !important;
-    color: #ffffff !important;
-    font-weight: 600;
+    color: white !important;
+    font-weight: 650;
 }
 
 .chipCount {
-    font-size: 10px;
-    padding: 1px 6px;
-    border-radius: 10px;
-    background: rgba(0, 0, 0, 0.2);
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    background: var(--bg-card-hover, rgba(140, 150, 160, 0.2));
+    color: var(--text-secondary);
 }
 
 .filterChipActive .chipCount {
-    background: rgba(255, 255, 255, 0.25);
-    color: #fff;
+    background: rgba(255, 255, 255, 0.22);
+    color: white;
 }
 
 .resultsMeta {
@@ -158,12 +165,22 @@
 }
 
 .assetBadge {
-    padding: 3px 10px;
-    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px 3px 8px;
+    border-radius: 20px;
+    background: var(--bg-card-hover, #1a1d26);
+    border: 1px solid var(--border-subtle, #242732);
+    color: var(--text-muted);
     font-size: 11px;
     font-weight: 600;
-    background: rgba(96, 165, 250, 0.15);
-    color: var(--accent-primary);
+}
+
+.assetBadgeDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
 }
 
 .profileBadge {
@@ -200,7 +217,27 @@
     display: flex;
     justify-content: space-between;
     font-size: 13px;
-    color: var(--text-secondary);
+    color: var(--text-muted);
+}
+
+.gainBadge, .lossBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px 3px 7px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 650;
+}
+
+.gainBadge {
+    background: rgba(45, 212, 167, 0.14);
+    color: #2dd4a7;
+}
+
+.lossBadge {
+    background: rgba(244, 104, 92, 0.14);
+    color: #f4685c;
 }
 
 .detailRow span:last-child {
@@ -416,15 +453,62 @@
 .liveDot {
     width: 6px;
     height: 6px;
-    background-color: #10b981;
+    background-color: #2dd4a7;
     border-radius: 50%;
     animation: pulse 1.5s infinite;
 }
 
 @keyframes pulse {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 4px rgba(16, 185, 129, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(45, 212, 167, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 4px rgba(45, 212, 167, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(45, 212, 167, 0); }
+}
+
+.pulseWrap {
+    position: relative;
+    width: 8px;
+    height: 8px;
+}
+.pulseCore {
+    position: absolute;
+    inset: 0;
+    background: #2dd4a7;
+    border-radius: 50%;
+}
+.pulseRing {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: #2dd4a7;
+    animation: pulseRingAnim 1.8s ease-out infinite;
+}
+@keyframes pulseRingAnim {
+    0% { transform: scale(1); opacity: 0.7; }
+    100% { transform: scale(2.6); opacity: 0; }
+}
+
+.liveBadgeNew {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px 5px 10px;
+    border-radius: 20px;
+    background: rgba(45, 212, 167, 0.14);
+    color: #2dd4a7;
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.liveBadgeFetching {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px 5px 10px;
+    border-radius: 20px;
+    background: rgba(245, 158, 11, 0.14);
+    color: #f59e0b;
+    font-size: 12.5px;
+    font-weight: 600;
 }
 
 /* NEW ASSET MODAL REDESIGN */

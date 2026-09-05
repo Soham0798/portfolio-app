@@ -7,8 +7,8 @@ const TOKEN_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 function getJwtSecret(): string {
     const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
     if (!secret) {
-        if (process.env.NODE_ENV === 'production') {
-            throw new Error('FATAL: JWT_SECRET environment variable is not set in production.');
+        if (process.env.NODE_ENV !== 'development') {
+            throw new Error('FATAL: JWT_SECRET environment variable is not set.');
         }
         return 'dev-jwt-secret-key-change-in-production';
     }

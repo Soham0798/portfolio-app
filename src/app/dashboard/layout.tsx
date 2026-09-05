@@ -325,10 +325,10 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                         <div className={`tab-group hide-on-mobile`}>
                             {(['sameer', 'snehal', 'soham', 'combined'] as const).map((p) => {
                                 let dotStyle = {};
-                                if (p === 'sameer') dotStyle = { background: '#5b8fe0' };
-                                else if (p === 'snehal') dotStyle = { background: '#9b82e3' };
+                                if (p === 'sameer') dotStyle = { background: '#8b7cf6' };
+                                else if (p === 'snehal') dotStyle = { background: '#c084fc' };
                                 else if (p === 'soham') dotStyle = { background: '#4fb797' };
-                                else dotStyle = { background: 'linear-gradient(90deg, #5b8fe0, #9b82e3, #4fb797)' };
+                                else dotStyle = { background: '#5b9bf7' };
 
                                 return (
                                     <button
@@ -336,7 +336,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                                         className={`tab ${profile === p ? 'active' : ''}`}
                                         onClick={() => setProfile(p)}
                                     >
-                                        <span className="pdot" style={dotStyle}></span>
+                                        <span className="pavatar" style={dotStyle}>{p.charAt(0).toUpperCase()}</span>
                                         {p.charAt(0).toUpperCase() + p.slice(1)}
                                     </button>
                                 );

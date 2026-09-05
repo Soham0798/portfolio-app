@@ -405,7 +405,7 @@ export default function DashboardPage() {
                                 <div className={`${styles.insightTag} ${tagClass}`}></div>
                                 <div>
                                     <div className={styles.insightKicker}>{insight.type}</div>
-                                    <div className={styles.insightText} dangerouslySetInnerHTML={{ __html: insight.message }}></div>
+                                    <div className={styles.insightText}>{insight.message}</div>
                                 </div>
                                 <a href={insight.actionHref} className={styles.insightCta}>{insight.actionLabel}</a>
                             </div>

@@ -45,6 +45,11 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ error: 'Missing or invalid required fields' }, { status: 400 });
             }
 
+            // Sanitize ticker symbol to prevent SSRF
+            if (!/^[A-Z0-9._\-\/: ]{1,60}$/i.test(tickerSymbol)) {
+                return NextResponse.json({ error: 'Invalid ticker symbol format' }, { status: 400 });
+            }
+
             // Find or create Instrument
             let instrument = await Instrument.findOne({
                 tickerSymbol,

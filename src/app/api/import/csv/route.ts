@@ -23,6 +23,14 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // 5MB limit to prevent memory exhaustion
+        if (file.size > 5 * 1024 * 1024) {
+            return NextResponse.json(
+                { error: 'File size exceeds 5MB limit' },
+                { status: 413 }
+            );
+        }
+
         const text = await file.text();
         const lines = text.split('\n').filter(l => l.trim());
 

@@ -447,15 +447,21 @@ export default function AssetsPage() {
             <div className={styles.header}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <h2 className={styles.title}>Assets</h2>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', background: 'var(--bg-card)', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                    <div className={isLiveRefreshing ? styles.liveBadgeFetching : styles.liveBadgeNew}>
                         {isLiveRefreshing ? (
                             <>
-                                <div className={styles.liveDot} style={{ background: '#f59e0b', boxShadow: '0 0 0 0 rgba(245, 158, 11, 0.7)' }}></div>
+                                <span className={styles.pulseWrap}>
+                                    <span className={styles.pulseRing} style={{ background: '#f59e0b', animation: 'none' }}></span>
+                                    <span className={styles.pulseCore} style={{ background: '#f59e0b' }}></span>
+                                </span>
                                 Fetching live prices...
                             </>
                         ) : (
                             <>
-                                <div className={styles.liveDot}></div>
+                                <span className={styles.pulseWrap}>
+                                    <span className={styles.pulseRing}></span>
+                                    <span className={styles.pulseCore}></span>
+                                </span>
                                 Prices are live
                             </>
                         )}
@@ -577,7 +583,10 @@ export default function AssetsPage() {
                                     className={`glass-card ${styles.card}`}
                                 >
                                     <div className={styles.cardHeader}>
-                                        <span className={styles.assetBadge}>{asset.assetType}</span>
+                                        <span className={styles.assetBadge}>
+                                            <span className={styles.assetBadgeDot} style={{ background: asset.assetType === 'MUTUAL_FUND' ? '#5b9bf7' : (asset.assetType === 'STOCK' || asset.assetType === 'ETF') ? '#8b7cf6' : '#2dd4a7' }}></span>
+                                            {asset.assetType === 'MUTUAL_FUND' ? 'Mutual Fund' : asset.assetType === 'EPF' ? 'EPF' : asset.assetType === 'PPF' ? 'PPF' : asset.assetType === 'FD' ? 'FD' : asset.assetType === 'SGB' ? 'SGB' : asset.assetType.charAt(0) + asset.assetType.slice(1).toLowerCase()}
+                                        </span>
                                         <span className={styles.profileBadge}>{asset.profile}</span>
                                     </div>
 
@@ -585,8 +594,8 @@ export default function AssetsPage() {
 
                                     <div className={styles.valueRow}>
                                         <span className={styles.currentValue}>{formatCurrency(asset.currentValue)}</span>
-                                        <span className={returns >= 0 ? 'gain' : 'loss'}>
-                                            {returns >= 0 ? '▲' : '▼'} {returnsPercent}%
+                                        <span className={returns >= 0 ? styles.gainBadge : styles.lossBadge}>
+                                            {returns >= 0 ? '▲' : '▼'} {Math.abs(parseFloat(returnsPercent))}%
                                         </span>
                                     </div>
 
@@ -597,7 +606,7 @@ export default function AssetsPage() {
                                         </div>
                                         <div className={styles.detailRow}>
                                             <span>Returns</span>
-                                            <span className={returns >= 0 ? 'gain' : 'loss'}>{formatCurrency(returns)}</span>
+                                            <span className={returns >= 0 ? styles.gainBadge : styles.lossBadge}>{returns >= 0 ? '▲ ' : '▼ '}{formatCurrency(Math.abs(returns))}</span>
                                         </div>
                                         {asset.interestRate > 0 && asset.assetType !== 'ULIP' && (
                                             <div className={styles.detailRow}>

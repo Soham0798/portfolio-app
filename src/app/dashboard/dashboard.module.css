@@ -856,3 +856,191 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Mobile-specific fixes (375–480px) ---- */
+@media (max-width: 480px) {
+
+  /* Global card overflow guard */
+  .section,
+  .heroCard,
+  .qsCell,
+  .loanCard {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  /* Reduce section padding */
+  .section {
+    padding: 20px 16px;
+  }
+
+  .topline {
+    padding: 16px;
+  }
+
+  .hero {
+    padding: 24px 16px 20px;
+  }
+
+  /* Hero number shrinks */
+  .heroNumber {
+    font-size: 36px;
+  }
+
+  /* Quick stats: single column on very narrow */
+  .quickstats {
+    grid-template-columns: 1fr;
+  }
+
+  .qsCell {
+    padding: 16px 18px;
+  }
+
+  .qsValue {
+    font-size: 17px;
+    word-break: break-word;
+  }
+
+  /* Section header: wrap if needed */
+  .sectionHead {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .sectionTitle {
+    font-size: 18px;
+  }
+
+  /* ---- "What you own" legend rows ---- */
+  .donutWrap {
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .donut {
+    width: 120px;
+    height: 120px;
+    align-self: center;
+  }
+
+  .legend {
+    width: 100%;
+  }
+
+  .legendRow {
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .legendRow .name {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .legendRow .pct {
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  .legendRow .val {
+    width: auto;
+    flex-shrink: 0;
+    font-size: 11px;
+  }
+
+  /* ---- "What you owe" — loan cards ---- */
+  .loanTop {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .loanAmt {
+    font-size: 20px;
+    word-break: break-word;
+  }
+
+  .loanFoot {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .loanFoot > div {
+    min-width: 0;
+  }
+
+  .loanMeta {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* ---- Goal rows ---- */
+  .goalRow .goalTop {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .goalRow .goalTop .gAmt {
+    font-size: 10px;
+    word-break: break-word;
+    min-width: 0;
+  }
+
+  /* ---- Insights ---- */
+  .insightRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px 4px;
+  }
+
+  .insightTag {
+    display: none;
+  }
+
+  .insightText {
+    font-size: 13px;
+  }
+
+  .insightCta {
+    justify-self: start;
+    font-size: 10px;
+    padding: 7px 12px;
+  }
+
+  /* ---- Breakdown rows (health score) ---- */
+  .breakdownPanel {
+    padding: 18px 16px;
+  }
+
+  .breakdownRow {
+    grid-template-columns: 100px 1fr 36px 32px;
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  .bdName {
+    font-size: 10.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ---- Trend section ---- */
+  .trendWrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .trendFigures .tfNum {
+    font-size: 20px;
+  }
+
+  /* ---- Modal ---- */
+  .modalContent {
+    padding: 24px 20px;
+  }
+}

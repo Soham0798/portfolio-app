@@ -12,18 +12,12 @@ export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
     const authHeader = req.headers.get('authorization');
-    const { searchParams } = new URL(req.url);
-    const secretQuery = searchParams.get('secret');
-    
-    console.log('CRON_SECRET Check:', {
-        authHeader,
-        secretQuery,
-        envSecret: process.env.CRON_SECRET
-    });
 
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && secretQuery !== process.env.CRON_SECRET) {
-        return NextResponse.json({ error: 'Unauthorized', receivedSecret: secretQuery, expectedSecret: process.env.CRON_SECRET }, { status: 401 });
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { searchParams } = new URL(req.url);
 
     await dbConnect();
     const action = searchParams.get('action');
