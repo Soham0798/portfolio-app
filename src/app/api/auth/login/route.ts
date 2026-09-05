@@ -32,9 +32,7 @@ function checkRateLimit(ip: string): boolean {
 
 export async function POST(req: NextRequest) {
     try {
-        // Very basic IP extraction. For a production app on a PaaS (like Vercel),
-        // you would use the 'x-forwarded-for' header or req.ip.
-        const ip = req.headers.get('x-forwarded-for') || req.ip || 'unknown-ip';
+        const ip = req.headers.get('x-forwarded-for') || 'unknown-ip';
         
         if (!checkRateLimit(ip)) {
             return NextResponse.json(
