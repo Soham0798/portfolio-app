@@ -74,14 +74,21 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Auto-promote the admin or sameer account if they log in
+        if ((user.username === 'admin' || user.username === 'sameer') && !user.isAdmin) {
+            user.isAdmin = true;
+            await user.save();
+        }
+
         await setAuthCookie({
             userId: user._id.toString(),
             username: user.username,
+            isAdmin: user.isAdmin || false,
         });
 
         return NextResponse.json({
             message: 'Login successful',
-            user: { id: user._id, username: user.username },
+            user: { id: user._id, username: user.username, isAdmin: user.isAdmin || false },
         });
     } catch (error) {
         return NextResponse.json(

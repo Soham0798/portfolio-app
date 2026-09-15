@@ -24,6 +24,7 @@ export interface PortfolioData {
         monthlyIncome: number;
         monthlyExpenses: number;
         insuranceCover: number;
+        isProfileConfigured?: boolean;
     };
 }
 
@@ -260,11 +261,11 @@ export function generateInsights(data: PortfolioData): Insight[] {
         });
     }
 
-    if (data.userProfile.monthlyExpenses === 0 || data.userProfile.monthlyIncome === 0) {
+    if (!data.userProfile.isProfileConfigured) {
         insights.push({
             id: 'setup-profile',
             type: 'Urgent',
-            message: `Your financial profile is incomplete. Add your monthly income and expenses to unlock personalized insights like emergency fund checks and insurance adequacy.`,
+            message: `Your financial profile is incomplete. Add your date of birth and save your profile to unlock personalized insights like emergency fund checks and insurance adequacy.`,
             actionLabel: 'Complete profile',
             actionHref: '/dashboard/planning'
         });

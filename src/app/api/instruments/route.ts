@@ -13,7 +13,12 @@ export async function GET(req: NextRequest) {
     const assetType = searchParams.get('type');
     const activeOnly = searchParams.get('active');
 
-    const query: any = { userId: user.userId };
+    const query: any = {
+        $or: [
+            { isGlobal: true },
+            { userId: user.userId }
+        ]
+    };
     if (assetType) query.assetType = assetType;
     if (activeOnly !== 'false') query.isActive = true;
 
@@ -28,6 +33,17 @@ export async function POST(req: NextRequest) {
 
     await dbConnect();
 
+    // Prevent DoS: Limit regular users to 50 custom instruments
+    if (!user.isAdmin) {
+        const customCount = await Instrument.countDocuments({ userId: user.userId, isGlobal: false });
+        if (customCount >= 50) {
+            return NextResponse.json(
+                { error: 'Custom instrument quota exceeded (50 max)' },
+                { status: 403 }
+            );
+        }
+    }
+
     try {
         const body = await req.json();
         const instrument = await Instrument.create({
@@ -36,6 +52,7 @@ export async function POST(req: NextRequest) {
             name: body.name,
             assetType: body.assetType,
             exchange: body.exchange || '',
+            isGlobal: user.isAdmin === true,
         });
         return NextResponse.json({ instrument }, { status: 201 });
     } catch (error: any) {

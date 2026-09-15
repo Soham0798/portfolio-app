@@ -255,7 +255,17 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                         <div className={styles.avatar}>SA</div>
                         <div className={styles.accountInfo}>
                             <span className={styles.accountName}>Sameer</span>
-                            <span className={styles.accountEmail}>sameer@portfolio.co</span>
+                            <span style={{ 
+                                background: '#ef4444', 
+                                color: 'white', 
+                                fontSize: '10px', 
+                                fontWeight: 'bold', 
+                                padding: '2px 6px', 
+                                borderRadius: '4px', 
+                                marginTop: '2px',
+                                display: 'inline-block',
+                                width: 'fit-content'
+                            }}>ADMIN</span>
                         </div>
                         <svg className={styles.chev} style={{ transform: accountDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
                             <path d="M4 5.5L7 8.5L10 5.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -275,14 +285,14 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                                     left: '12px',
                                     right: '12px',
                                     marginBottom: '8px',
-                                    background: 'var(--surface-raised)',
-                                    border: '1px solid var(--hairline)',
+                                    background: 'var(--bg-card)',
+                                    border: '1px solid var(--border-subtle)',
                                     borderRadius: '12px',
                                     padding: '8px',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     gap: '8px',
-                                    boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                                    boxShadow: '0 10px 25px rgba(0,0,0,0.12)',
                                     zIndex: 100
                                 }}
                             >

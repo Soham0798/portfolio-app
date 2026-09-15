@@ -23,8 +23,14 @@ export async function PUT(
     if (exchange !== undefined) updateFields.exchange = exchange;
     if (isActive !== undefined) updateFields.isActive = isActive;
 
+    const query: any = { _id: id };
+    if (!user.isAdmin) {
+        query.userId = user.userId;
+        query.isGlobal = false;
+    }
+
     const instrument = await Instrument.findOneAndUpdate(
-        { _id: id, userId: user.userId },
+        query,
         { $set: updateFields },
         { new: true }
     );
@@ -47,7 +53,14 @@ export async function DELETE(
     await dbConnect();
 
     const { id } = await params;
-    const instrument = await Instrument.findOneAndDelete({ _id: id, userId: user.userId });
+    
+    const query: any = { _id: id };
+    if (!user.isAdmin) {
+        query.userId = user.userId;
+        query.isGlobal = false;
+    }
+
+    const instrument = await Instrument.findOneAndDelete(query);
 
     if (!instrument) {
         return NextResponse.json({ error: 'Instrument not found' }, { status: 404 });

@@ -134,13 +134,18 @@ export default function AssetsPage() {
         return 0;
     };
 
-    const fetchAssets = async (silent = false) => {
+    const fetchAssets = useCallback(async (silent = false, signal?: AbortSignal) => {
         if (!silent) setLoading(true);
         try {
             const profileParam = profile === 'combined' ? '' : `?profile=${profile}`;
-            const res = await fetch(`/api/holdings${profileParam}`, { cache: 'no-store' });
+            const res = await fetch(`/api/holdings${profileParam}`, { 
+                cache: 'no-store', 
+                ...(signal ? { signal } : {}) 
+            });
             const data = await res.json();
             
+            if (signal?.aborted) return;
+
             const mappedHoldings = (data.holdings || []).map((h: any) => ({
                 _id: h.instrumentId,
                 profile: profile === 'combined' ? 'Combined' : profile,
@@ -159,39 +164,46 @@ export default function AssetsPage() {
             }));
             
             setAssets([...mappedHoldings, ...(data.manualAssets || [])]);
-        } catch (err) {
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error('Failed to fetch assets:', err);
         } finally {
-            if (!silent) setLoading(false);
+            if (!signal?.aborted && !silent) setLoading(false);
         }
-    };
-
-    const triggerLiveRefresh = async () => {
-        setIsLiveRefreshing(true);
-        try {
-            const res = await fetch('/api/prices/refresh-user', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ profileId: profile }),
-            });
-            if (res.ok) {
-                // Silently re-fetch assets to get the new live prices
-                await fetchAssets(true);
-            }
-        } catch (err) {
-            console.error('Live refresh failed:', err);
-        } finally {
-            setIsLiveRefreshing(false);
-        }
-    };
+    }, [profile]);
 
     useEffect(() => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        const triggerLiveRefresh = async () => {
+            setIsLiveRefreshing(true);
+            try {
+                const res = await fetch('/api/prices/refresh-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profileId: profile }),
+                    signal,
+                });
+                if (res.ok && !signal.aborted) {
+                    await fetchAssets(true, signal);
+                }
+            } catch (err: any) {
+                if (err.name === 'AbortError') return;
+                console.error('Live refresh failed:', err);
+            } finally {
+                if (!signal.aborted) setIsLiveRefreshing(false);
+            }
+        };
+
         // Initial load (shows spinner)
-        fetchAssets().then(() => {
+        fetchAssets(false, signal).then(() => {
             // After initial DB load, fetch live prices silently
-            triggerLiveRefresh();
+            if (!signal.aborted) triggerLiveRefresh();
         });
-    }, [profile]);
+
+        return () => controller.abort();
+    }, [profile, fetchAssets]);
 
     // Close dropdown on outside click
     useEffect(() => {

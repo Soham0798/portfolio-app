@@ -53,17 +53,24 @@ export default function HistoryPage() {
         fetchSnapshots();
     }, [range]);
 
-    const chartData = snapshots.map((s) => {
+    const chartData = snapshots.map((s, i) => {
+        let value = s.totalValue;
+        let prevValue = 0;
+
         if (profile === 'sameer') {
-            return { date: s.dateString, value: s.byProfile?.sameer?.totalValue || 0 };
+            value = s.byProfile?.sameer?.totalValue || 0;
+            prevValue = i > 0 ? (snapshots[i - 1].byProfile?.sameer?.totalValue || 0) : value;
+        } else if (profile === 'snehal') {
+            value = s.byProfile?.snehal?.totalValue || 0;
+            prevValue = i > 0 ? (snapshots[i - 1].byProfile?.snehal?.totalValue || 0) : value;
+        } else if (profile === 'soham') {
+            value = s.byProfile?.soham?.totalValue || 0;
+            prevValue = i > 0 ? (snapshots[i - 1].byProfile?.soham?.totalValue || 0) : value;
+        } else {
+            prevValue = i > 0 ? snapshots[i - 1].totalValue : value;
         }
-        if (profile === 'snehal') {
-            return { date: s.dateString, value: s.byProfile?.snehal?.totalValue || 0 };
-        }
-        if (profile === 'soham') {
-            return { date: s.dateString, value: s.byProfile?.soham?.totalValue || 0 };
-        }
-        return { date: s.dateString, value: s.totalValue };
+
+        return { date: s.dateString, value, dayChange: i > 0 ? value - prevValue : 0 };
     });
 
     const formatCurrency = (n: number) =>
@@ -156,7 +163,7 @@ export default function HistoryPage() {
                 )}
             </div>
 
-            {snapshots.length > 0 && (
+            {chartData.length > 0 && (
                 <div className={`glass-card ${styles.tableCard}`}>
                     <h3 className={styles.sectionTitle}>Daily Snapshots</h3>
                     <table className="table">
@@ -165,22 +172,16 @@ export default function HistoryPage() {
                                 <th>Date</th>
                                 <th>Total Value</th>
                                 <th>Day Change</th>
-                                <th>Sameer</th>
-                                <th>Snehal</th>
-                                <th>Soham</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {[...snapshots].reverse().slice(0, 30).map((s) => (
-                                <tr key={s.dateString}>
-                                    <td>{new Date(s.dateString).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</td>
-                                    <td>{formatCurrency(s.totalValue)}</td>
-                                    <td className={s.dayGain >= 0 ? 'gain' : 'loss'}>
-                                        {s.dayGain >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(s.dayGain))}
+                            {[...chartData].reverse().slice(0, 30).map((d) => (
+                                <tr key={d.date}>
+                                    <td>{new Date(d.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</td>
+                                    <td>{formatCurrency(d.value)}</td>
+                                    <td className={d.dayChange >= 0 ? 'gain' : 'loss'}>
+                                        {d.dayChange >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(d.dayChange))}
                                     </td>
-                                    <td>{formatCurrency(s.byProfile?.sameer?.totalValue || 0)}</td>
-                                    <td>{formatCurrency(s.byProfile?.snehal?.totalValue || 0)}</td>
-                                    <td>{formatCurrency(s.byProfile?.soham?.totalValue || 0)}</td>
                                 </tr>
                             ))}
                         </tbody>

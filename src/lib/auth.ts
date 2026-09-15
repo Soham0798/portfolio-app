@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
 const TOKEN_NAME = 'portfolio-token';
-const TOKEN_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+const TOKEN_MAX_AGE = 60 * 60 * 24; // 1 day
 
 function getJwtSecret(): string {
     const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
@@ -18,6 +18,7 @@ function getJwtSecret(): string {
 export interface JWTPayload {
     userId: string;
     username: string;
+    isAdmin: boolean;
 }
 
 export function signToken(payload: JWTPayload): string {

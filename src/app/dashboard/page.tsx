@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import GaugeMeter from '@/components/GaugeMeter';
 import { useProfile } from '@/components/ProfileContext';
 import styles from './dashboard.module.css';
@@ -79,19 +79,22 @@ export default function DashboardPage() {
     const [isSubmittingAge, setIsSubmittingAge] = useState(false);
     const [promptDob, setPromptDob] = useState('');
 
-    const fetchData = async (silent = false) => {
+    const fetchData = useCallback(async (silent = false, signal?: AbortSignal) => {
         if (!silent) setLoading(true);
         try {
             const profileParam = profile === 'combined' ? '' : `?profile=${profile}`;
             
+            const reqInit = signal ? { signal } : {};
             const [res, snapRes] = await Promise.all([
-                fetch(`/api/holdings${profileParam}`),
-                fetch(`/api/snapshots${profileParam}`)
+                fetch(`/api/holdings${profileParam}`, reqInit),
+                fetch(`/api/snapshots${profileParam}`, reqInit)
             ]);
             
             const data = await res.json();
             const snapData = await snapRes.json();
             
+            if (signal?.aborted) return;
+
             setHoldings(data.holdings || []);
             setLiabilities(data.liabilities || []);
             setGoals(data.goals || []);
@@ -112,39 +115,46 @@ export default function DashboardPage() {
             if (data.summary && !data.summary.isProfileConfigured && profile !== 'combined') {
                 setShowAgePrompt(true);
             }
-        } catch (error) {
+        } catch (error: any) {
+            if (error.name === 'AbortError') return;
             console.error('Failed to fetch dashboard data:', error);
         } finally {
-            if (!silent) setLoading(false);
+            if (!signal?.aborted && !silent) setLoading(false);
         }
-    };
-
-    const triggerLiveRefresh = async () => {
-        setIsLiveRefreshing(true);
-        try {
-            const res = await fetch('/api/prices/refresh-user', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ profileId: profile }),
-            });
-            if (res.ok) {
-                // Silently re-fetch dashboard to get the new live prices
-                await fetchData(true);
-            }
-        } catch (err) {
-            console.error('Live refresh failed:', err);
-        } finally {
-            setIsLiveRefreshing(false);
-        }
-    };
+    }, [profile]);
 
     useEffect(() => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        const triggerLiveRefresh = async () => {
+            setIsLiveRefreshing(true);
+            try {
+                const res = await fetch('/api/prices/refresh-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profileId: profile }),
+                    signal,
+                });
+                if (res.ok && !signal.aborted) {
+                    await fetchData(true, signal);
+                }
+            } catch (err: any) {
+                if (err.name === 'AbortError') return;
+                console.error('Live refresh failed:', err);
+            } finally {
+                if (!signal.aborted) setIsLiveRefreshing(false);
+            }
+        };
+
         // Initial load (shows spinner)
-        fetchData().then(() => {
+        fetchData(false, signal).then(() => {
             // After initial DB load, fetch live prices silently
-            triggerLiveRefresh();
+            if (!signal.aborted) triggerLiveRefresh();
         });
-    }, [profile]);
+
+        return () => controller.abort();
+    }, [profile, fetchData]);
 
     const handleSaveAge = async () => {
         if (!promptDob) return;

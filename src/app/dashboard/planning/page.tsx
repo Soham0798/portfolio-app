@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useProfile } from '@/components/ProfileContext';
 import styles from './planning.module.css';
 import NumberInput from '@/components/NumberInput';
@@ -20,36 +20,50 @@ export default function PlanningPage() {
     const [editLiabilityId, setEditLiabilityId] = useState<string | null>(null);
     const [editGoalId, setEditGoalId] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchData();
-    }, [profile]);
-
-    async function fetchData() {
+    const fetchData = useCallback(async (signal?: AbortSignal) => {
         setLoading(true);
         const profileParam = profile === 'combined' ? '' : `?profile=${profile}`;
         
-        const [profRes, liabRes, goalRes] = await Promise.all([
-            fetch(`/api/profile${profileParam}`),
-            fetch(`/api/liabilities${profileParam}`),
-            fetch(`/api/goals${profileParam}`)
-        ]);
+        try {
+            const reqInit = signal ? { signal } : {};
+            const [profRes, liabRes, goalRes] = await Promise.all([
+                fetch(`/api/profile${profileParam}`, reqInit),
+                fetch(`/api/liabilities${profileParam}`, reqInit),
+                fetch(`/api/goals${profileParam}`, reqInit)
+            ]);
 
-        const profData = await profRes.json();
-        const liabData = await liabRes.json();
-        const goalData = await goalRes.json();
+            const profData = await profRes.json();
+            const liabData = await liabRes.json();
+            const goalData = await goalRes.json();
 
-        const p = profData.profile || {};
-        setUserProfile({
-            ...p,
-            dob: p.dob ? new Date(p.dob).toISOString().split('T')[0] : '',
-            monthlyIncome: p.monthlyIncome || 0,
-            monthlyExpenses: p.monthlyExpenses || 0,
-            insuranceCover: p.insuranceCover || 0
-        });
-        setLiabilities(liabData.liabilities || []);
-        setGoals(goalData.goals || []);
-        setLoading(false);
-    }
+            if (signal?.aborted) return;
+
+            const p = profData.profile || {};
+            setUserProfile({
+                ...p,
+                dob: p.dob ? new Date(p.dob).toISOString().split('T')[0] : '',
+                monthlyIncome: p.monthlyIncome || 0,
+                monthlyExpenses: p.monthlyExpenses || 0,
+                insuranceCover: p.insuranceCover || 0
+            });
+            setLiabilities(liabData.liabilities || []);
+            setGoals(goalData.goals || []);
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
+            console.error('Failed to fetch planning data:', err);
+        } finally {
+            if (!signal?.aborted) setLoading(false);
+        }
+    }, [profile]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        fetchData(signal);
+
+        return () => controller.abort();
+    }, [profile, fetchData]);
 
     async function saveProfile() {
         await fetch('/api/profile', {

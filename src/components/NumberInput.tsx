@@ -1,4 +1,4 @@
-import React, { InputHTMLAttributes, forwardRef } from 'react';
+import React, { InputHTMLAttributes, forwardRef, useState, useEffect } from 'react';
 
 interface NumberInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
     value: number | string;
@@ -8,12 +8,42 @@ interface NumberInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, '
 
 const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
     ({ value, onChange, containerClassName, className, ...props }, ref) => {
+        // Track the raw display string so the user can clear/type freely
+        const [displayValue, setDisplayValue] = useState<string>(String(value ?? ''));
+
+        // Sync from parent when the prop value changes externally
+        useEffect(() => {
+            const incoming = String(value ?? '');
+            // Only sync if the parent value doesn't match what we already show
+            // This avoids overwriting while the user is actively typing
+            if (Number(incoming) !== Number(displayValue) || (incoming === '0' && displayValue !== '0' && displayValue !== '')) {
+                setDisplayValue(incoming);
+            }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [value]);
+
+        const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+            const raw = e.target.value;
+            setDisplayValue(raw);
+            // Only propagate valid numbers; treat empty as 0
+            const num = raw === '' ? 0 : Number(raw);
+            if (!isNaN(num)) {
+                onChange(num);
+            }
+        };
+
         const handleIncrement = () => {
-            onChange(Number(value) + (Number(props.step) || 1));
+            const num = Number(displayValue) || 0;
+            const next = num + (Number(props.step) || 1);
+            setDisplayValue(String(next));
+            onChange(next);
         };
 
         const handleDecrement = () => {
-            onChange(Number(value) - (Number(props.step) || 1));
+            const num = Number(displayValue) || 0;
+            const next = num - (Number(props.step) || 1);
+            setDisplayValue(String(next));
+            onChange(next);
         };
 
         return (
@@ -21,8 +51,8 @@ const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
                 <input
                     ref={ref}
                     type="number"
-                    value={value}
-                    onChange={(e) => onChange(Number(e.target.value))}
+                    value={displayValue}
+                    onChange={handleChange}
                     className={`custom-number-input ${className || ''}`}
                     {...props}
                     style={{

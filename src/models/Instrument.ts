@@ -16,6 +16,7 @@ export interface IInstrument extends Document {
     previousClose: number;
     priceLastUpdated: Date | null;
     isActive: boolean;
+    isGlobal: boolean;
 }
 
 const InstrumentSchema = new Schema<IInstrument>(
@@ -59,6 +60,10 @@ const InstrumentSchema = new Schema<IInstrument>(
         isActive: {
             type: Boolean,
             default: true,
+        },
+        isGlobal: {
+            type: Boolean,
+            default: false,
         },
     },
     { timestamps: true }

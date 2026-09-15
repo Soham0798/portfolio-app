@@ -58,22 +58,29 @@ export default function HoldingsPage() {
     });
 
     useEffect(() => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
         async function fetchData() {
             setLoading(true);
             try {
                 const profileParam = profile === 'combined' ? '' : `?profile=${profile}`;
-                const res = await fetch(`/api/holdings${profileParam}`);
+                const res = await fetch(`/api/holdings${profileParam}`, { signal });
                 const data = await res.json();
+                if (signal.aborted) return;
                 setHoldings(data.holdings || []);
                 setManualAssets(data.manualAssets || []);
                 setSummary(data.summary || null);
-            } catch (err) {
+            } catch (err: any) {
+                if (err.name === 'AbortError') return;
                 console.error('Failed to fetch holdings:', err);
             } finally {
-                setLoading(false);
+                if (!signal.aborted) setLoading(false);
             }
         }
         fetchData();
+
+        return () => controller.abort();
     }, [profile]);
 
     const formatCurrency = (n: number) => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n || 0);

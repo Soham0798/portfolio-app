@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
         assets: engineAssets,
         liabilities,
         goals,
-        userProfile: resolvedProfile
+        userProfile: { ...resolvedProfile.toObject ? resolvedProfile.toObject() : resolvedProfile, isProfileConfigured: !!resolvedProfile.dob }
     };
 
     // Calculate Portfolio Engine scores and insights
