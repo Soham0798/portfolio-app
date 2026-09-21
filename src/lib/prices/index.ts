@@ -148,7 +148,7 @@ export async function refreshAllPrices(instrumentIds?: string[]): Promise<Refres
         // Fetch all SGB prices from NSE in one API call
         const nsePrices = await fetchAllNSESGBPrices();
         // Gold rate as fallback for any SGB not found on NSE
-        const goldPrice = nsePrices.size === 0 ? await fetchGoldPriceINR() : null;
+        const goldPrice = await fetchGoldPriceINR();
 
         for (const inst of sgbInstruments) {
             const nsePrice = nsePrices.get(inst.tickerSymbol);

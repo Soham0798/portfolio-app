@@ -22,139 +22,69 @@ export async function GET(req: NextRequest) {
     const matchStage: any = { userId: new mongoose.Types.ObjectId(user.userId) };
     if (profile && profile !== 'combined') matchStage.profile = profile;
 
-    const holdings = await Transaction.aggregate([
-        { $match: matchStage },
-
-        {
-            $group: {
-                _id: '$instrumentId',
-                totalBuyQty: {
-                    $sum: {
-                        $cond: [{ $eq: ['$type', 'BUY'] }, '$quantity', 0]
-                    }
-                },
-                totalSellQty: {
-                    $sum: {
-                        $cond: [{ $eq: ['$type', 'SELL'] }, '$quantity', 0]
-                    }
-                },
-                totalBuyValue: {
-                    $sum: {
-                        $cond: [
-                            { $eq: ['$type', 'BUY'] },
-                            { $multiply: ['$quantity', '$price'] },
-                            0
-                        ]
-                    }
-                },
-                totalFees: { $sum: '$fees' },
-                totalDividends: {
-                    $sum: {
-                        $cond: [
-                            { $eq: ['$type', 'DIVIDEND'] },
-                            { $multiply: ['$quantity', '$price'] },
-                            0
-                        ]
-                    }
-                },
-            }
-        },
-
-        {
-            $addFields: {
-                currentQty: { $subtract: ['$totalBuyQty', '$totalSellQty'] },
-                totalInvested: { $add: ['$totalBuyValue', '$totalFees'] },
-            }
-        },
-
-        { $match: { currentQty: { $gt: 0 } } },
-
-        {
-            $lookup: {
-                from: 'instruments',
-                localField: '_id',
-                foreignField: '_id',
-                as: 'instrument',
-            }
-        },
-
-        { $unwind: '$instrument' },
-
-        {
-            $project: {
-                _id: 0,
-                instrumentId: '$_id',
-                name: '$instrument.name',
-                tickerSymbol: '$instrument.tickerSymbol',
-                assetType: '$instrument.assetType',
-                currentQty: 1,
-                avgBuyPrice: { $divide: ['$totalBuyValue', '$totalBuyQty'] },
-                totalInvested: 1,
-                totalFees: 1,
-                totalDividends: 1,
-                currentPrice: '$instrument.currentPrice',
-                previousClose: '$instrument.previousClose',
-                currentValue: { $multiply: ['$currentQty', '$instrument.currentPrice'] },
-                totalGain: {
-                    $subtract: [
-                        { $multiply: ['$currentQty', '$instrument.currentPrice'] },
-                        '$totalInvested'
-                    ]
-                },
-                dayGain: {
-                    $multiply: [
-                        '$currentQty',
-                        { $subtract: ['$instrument.currentPrice', '$instrument.previousClose'] }
-                    ]
-                },
-            }
-        },
-
-        { $sort: { currentValue: -1 } },
-    ]);
-
     const manualQuery: any = { userId: user.userId, status: 'ACTIVE' };
     if (profile && profile !== 'combined') manualQuery.profile = profile;
-    const manualAssets = await ManualAsset.find(manualQuery);
 
-    const marketValue = holdings.reduce((sum, h) => sum + h.currentValue, 0);
-    const marketInvested = holdings.reduce((sum, h) => sum + h.totalInvested, 0);
-    const manualValue = manualAssets.reduce((sum, a) => sum + a.currentValue, 0);
-    const manualInvested = manualAssets.reduce((sum, a) => sum + a.totalInvested, 0);
+    const userProfileQuery = (profile !== 'combined')
+        ? UserProfile.findOne({ userId: new mongoose.Types.ObjectId(user.userId), profile: profile || 'default' })
+        : Promise.resolve(null);
+
+    const [holdings, manualAssets, liabilities, goals, userProfile] = await Promise.all([
+        Transaction.aggregate([
+            { $match: matchStage },
+            {
+                $group: {
+                    _id: '$instrumentId',
+                    totalBuyQty: { $sum: { $cond: [{ $eq: ['$type', 'BUY'] }, '$quantity', 0] } },
+                    totalSellQty: { $sum: { $cond: [{ $eq: ['$type', 'SELL'] }, '$quantity', 0] } },
+                    totalBuyValue: { $sum: { $cond: [{ $eq: ['$type', 'BUY'] }, { $multiply: ['$quantity', '$price'] }, 0] } },
+                    totalFees: { $sum: '$fees' },
+                    totalDividends: { $sum: { $cond: [{ $eq: ['$type', 'DIVIDEND'] }, { $multiply: ['$quantity', '$price'] }, 0] } },
+                }
+            },
+            { $addFields: { currentQty: { $subtract: ['$totalBuyQty', '$totalSellQty'] }, totalInvested: { $add: ['$totalBuyValue', '$totalFees'] } } },
+            { $match: { currentQty: { $gt: 0 } } },
+            { $lookup: { from: 'instruments', localField: '_id', foreignField: '_id', as: 'instrument' } },
+            { $unwind: '$instrument' },
+            {
+                $project: {
+                    _id: 0, instrumentId: '$_id', name: '$instrument.name', tickerSymbol: '$instrument.tickerSymbol',
+                    assetType: '$instrument.assetType', currentQty: 1, avgBuyPrice: { $divide: ['$totalBuyValue', '$totalBuyQty'] },
+                    totalInvested: 1, totalFees: 1, totalDividends: 1, currentPrice: '$instrument.currentPrice',
+                    previousClose: '$instrument.previousClose',
+                    currentValue: { $multiply: ['$currentQty', '$instrument.currentPrice'] },
+                    totalGain: { $subtract: [{ $multiply: ['$currentQty', '$instrument.currentPrice'] }, '$totalInvested'] },
+                    dayGain: { $multiply: ['$currentQty', { $subtract: ['$instrument.currentPrice', '$instrument.previousClose'] }] },
+                }
+            },
+            { $sort: { currentValue: -1 } },
+        ]),
+        ManualAsset.find(manualQuery).lean(),
+        Liability.find(matchStage).lean(),
+        Goal.find(matchStage).lean(),
+        userProfileQuery,
+    ]);
+
+    const marketValue = holdings.reduce((sum: number, h: any) => sum + h.currentValue, 0);
+    const marketInvested = holdings.reduce((sum: number, h: any) => sum + h.totalInvested, 0);
+    const manualValue = manualAssets.reduce((sum: number, a: any) => sum + a.currentValue, 0);
+    const manualInvested = manualAssets.reduce((sum: number, a: any) => sum + a.totalInvested, 0);
 
     const totalValue = marketValue + manualValue;
     const totalInvested = marketInvested + manualInvested;
     const totalGain = totalValue - totalInvested;
-    const totalDayGain = holdings.reduce((sum: any, h: any) => sum + h.dayGain, 0);
+    const totalDayGain = holdings.reduce((sum: number, h: any) => sum + h.dayGain, 0);
 
-    // Mocked Portfolio Data
     const engineAssets = [
         ...holdings.map((h: any) => ({
-            name: h.name,
-            type: h.assetType,
-            value: h.currentValue,
-            cost: h.totalInvested,
+            name: h.name, type: h.assetType, value: h.currentValue, cost: h.totalInvested,
             isLiquid: h.assetType === 'ETF' || h.assetType === 'STOCK' || h.assetType === 'MUTUAL_FUND'
         })),
         ...manualAssets.map((a: any) => ({
-            name: a.name,
-            type: a.assetType,
-            value: a.currentValue,
-            cost: a.totalInvested,
+            name: a.name, type: a.assetType, value: a.currentValue, cost: a.totalInvested,
             isLiquid: a.assetType === 'CASH' || a.assetType === 'FD'
         }))
     ];
-
-    const liabilities = await Liability.find(matchStage);
-    const goals = await Goal.find(matchStage);
-
-    let userProfile = null;
-    if (profile !== 'combined') {
-        userProfile = await UserProfile.findOne({ 
-            userId: new mongoose.Types.ObjectId(user.userId),
-            profile: profile || 'default'
-        });
-    }
 
     const resolvedProfile = userProfile ? userProfile : {
         dob: null,
@@ -182,7 +112,7 @@ export async function GET(req: NextRequest) {
     // Calculate Portfolio Engine scores and insights
     const { calculateHealthScore, generateInsights } = await import('@/lib/portfolioEngine');
     const healthScore = calculateHealthScore(PortfolioData);
-    const insights = generateInsights(PortfolioData);
+    const insights = generateInsights(PortfolioData, holdings);
 
     return NextResponse.json({
         holdings,

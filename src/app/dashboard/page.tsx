@@ -73,6 +73,7 @@ export default function DashboardPage() {
     const [snapshots, setSnapshots] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isLiveRefreshing, setIsLiveRefreshing] = useState(false);
+    const [trendRange, setTrendRange] = useState<'7D' | '1M' | '3M' | '1Y' | 'ALL'>('ALL');
 
     const [showBreakdown, setShowBreakdown] = useState(false);
     const [showAgePrompt, setShowAgePrompt] = useState(false);
@@ -313,20 +314,83 @@ export default function DashboardPage() {
 
                     {/* HERO */}
                     <div className={styles.hero}>
-                        <div>
+                        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: '400px' }}>
                             <div className={styles.heroEyebrow}>Net worth · as of today</div>
                             <div className={styles.heroNumber}>₹{formatCurrency(netWorth)}</div>
-                            <div className={`${styles.heroDelta} ${(summary?.totalGain || 0) < 0 ? styles.neg : ''}`}>
-                                {(summary?.totalGain || 0) >= 0 ? '▲' : '▼'} ₹{formatCurrency(Math.abs(summary?.totalGain || 0))} this month
-                            </div>
-                            <div className={styles.heroSpark}>
-                                <svg width="100%" height="70" viewBox="0 0 600 160" preserveAspectRatio="none" style={{ maxWidth: '420px' }}>
-                                    <polyline points="0,150 54.5,135.8 109,116.9 163.6,126.4 218.2,102.8 272.7,83.9 327.3,93.3 381.8,69.7 436.4,50.8 490.9,41.3 545.5,46.1 600,30"
-                                        fill="none" stroke="#60a5fa" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                                    <circle cx="600" cy="30" r="5" fill="#60a5fa"/>
-                                </svg>
-                            </div>
-                            <div className={styles.heroCaption}>12-month trend · assets minus liabilities, updated nightly</div>
+                            
+                            {(() => {
+                                const now = new Date();
+                                const cutoff = new Date();
+                                if (trendRange === '7D') cutoff.setDate(now.getDate() - 7);
+                                else if (trendRange === '1M') cutoff.setMonth(now.getMonth() - 1);
+                                else if (trendRange === '3M') cutoff.setMonth(now.getMonth() - 3);
+                                else if (trendRange === '1Y') cutoff.setFullYear(now.getFullYear() - 1);
+                                else cutoff.setFullYear(2000);
+
+                                const filteredSnapshots = snapshots.filter(s => new Date(s.dateString) >= cutoff);
+                                const chartData = filteredSnapshots.map(s => {
+                                    const date = new Date(s.dateString);
+                                    return {
+                                        label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                                        month: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                        value: profile === 'combined' ? s.totalValue : (s.byProfile?.[profile as keyof typeof s.byProfile]?.totalValue || 0)
+                                    };
+                                });
+
+                                let deltaVal = 0;
+                                let deltaPct = 0;
+                                if (chartData.length > 0) {
+                                    const firstVal = chartData[0].value;
+                                    deltaVal = netWorth - firstVal;
+                                    deltaPct = firstVal > 0 ? (deltaVal / firstVal) * 100 : 0;
+                                }
+
+                                return (
+                                    <>
+                                        <div className={`${styles.heroDelta} ${deltaVal < 0 ? styles.neg : ''}`} style={{ marginTop: '4px' }}>
+                                            {deltaVal >= 0 ? '▲' : '▼'} ₹{formatCurrency(Math.abs(deltaVal))} ({Math.abs(deltaPct).toFixed(1)}%) {trendRange === 'ALL' ? 'all time' : `in last ${trendRange}`}
+                                        </div>
+                                        
+                                        <div style={{ width: '100%', height: '140px', marginTop: '24px', marginLeft: '-10px' }}>
+                                            {chartData.length > 0 ? (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <AreaChart data={chartData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                                                        <defs>
+                                                            <linearGradient id="fillgrad" x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.35"/>
+                                                                <stop offset="100%" stopColor="#60a5fa" stopOpacity="0"/>
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <XAxis dataKey="month" hide={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} minTickGap={30} />
+                                                        <Tooltip 
+                                                            contentStyle={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', borderRadius: '8px', fontSize: '12px' }}
+                                                            itemStyle={{ color: 'var(--text-primary)' }}
+                                                            formatter={(value: any) => [`₹${formatCurrency(Number(value) || 0)}`, 'Net Worth']}
+                                                            labelFormatter={(label) => label}
+                                                        />
+                                                        <Area type="monotone" dataKey="value" stroke="#60a5fa" strokeWidth={2.5} fillOpacity={1} fill="url(#fillgrad)" />
+                                                    </AreaChart>
+                                                </ResponsiveContainer>
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '13px' }}>
+                                                    Not enough data points yet for this range.
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className={styles.trendPills} style={{ alignSelf: 'flex-start', marginTop: '16px' }}>
+                                            {['7D', '1M', '3M', '1Y', 'ALL'].map(range => (
+                                                <button 
+                                                    key={range} 
+                                                    className={`${styles.trendPill} ${trendRange === range ? styles.active : ''}`}
+                                                    onClick={() => setTrendRange(range as any)}
+                                                >
+                                                    {range}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </div>
                         
                         <div className={styles.heroBadge}>
@@ -508,59 +572,7 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* TREND */}
-                <div className={styles.section} style={{ borderBottom: 'none' }}>
-                    <div className={styles.sectionHead}>
-                        <div className={styles.sectionTitle}>Net worth over time</div>
-                        <div className={styles.sectionSub}>Last 12 months</div>
-                    </div>
-                    
-                    {(() => {
-                        const chartData = snapshots.map(s => {
-                            const date = new Date(s.dateString);
-                            return {
-                                label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                                month: date.toLocaleDateString('en-US', { month: 'short' }),
-                                value: profile === 'combined' ? s.totalValue : (s.byProfile?.[profile as keyof typeof s.byProfile]?.totalValue || 0)
-                            };
-                        });
-                        
-                        return (
-                            <div className={styles.trendWrap}>
-                                <div className={styles.trendFigures}>
-                                    <div className={styles.tfNum}>₹{formatCurrency(netWorth)}</div>
-                                    <div className={styles.tfLbl}>Current</div>
-                                </div>
-                        <div style={{ width: '100%', height: '120px', marginTop: '16px' }}>
-                            {chartData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={chartData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
-                                        <defs>
-                                            <linearGradient id="fillgrad" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.35"/>
-                                                <stop offset="100%" stopColor="#60a5fa" stopOpacity="0"/>
-                                            </linearGradient>
-                                        </defs>
-                                        <XAxis dataKey="month" hide={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} minTickGap={20} />
-                                        <Tooltip 
-                                            contentStyle={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', borderRadius: '8px', fontSize: '12px' }}
-                                            itemStyle={{ color: 'var(--text-primary)' }}
-                                            formatter={(value: any) => [`₹${formatCurrency(Number(value) || 0)}`, 'Net Worth']}
-                                            labelFormatter={(label) => label}
-                                        />
-                                        <Area type="monotone" dataKey="value" stroke="#60a5fa" strokeWidth={2.5} fillOpacity={1} fill="url(#fillgrad)" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '13px' }}>
-                                    Not enough data points yet.
-                                </div>
-                            )}
-                        </div>
-                            </div>
-                        );
-                    })()}
-                </div>
+
 
                 {showAgePrompt && (
                     <div className={styles.modalOverlay}>

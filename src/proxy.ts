@@ -4,6 +4,19 @@ import { NextRequest, NextResponse } from 'next/server';
 export function proxy(req: NextRequest) {
     const token = req.cookies.get('portfolio-token')?.value;
     const { pathname } = req.nextUrl;
+    const method = req.method;
+
+    // CSRF protection for mutations
+    if (pathname.startsWith('/api/') && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+        // Only require for non-public paths
+        const publicPaths = ['/api/auth/login', '/api/cron'];
+        if (!publicPaths.some(path => pathname.startsWith(path))) {
+            const hasCsrfHeader = req.headers.has('x-portfolio-action');
+            if (!hasCsrfHeader) {
+                return NextResponse.json({ error: 'Missing CSRF header' }, { status: 403 });
+            }
+        }
+    }
 
     const publicPaths = ['/auth/login', '/api/auth/login', '/api/cron'];
     if (publicPaths.some(path => pathname.startsWith(path))) {

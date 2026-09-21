@@ -30,15 +30,18 @@ const geistMono = Geist_Mono({
 });
 
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { CsrfProvider } from "@/components/CsrfProvider";
 
 export default function RootLayout({ children }:
   LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false}>
-          {children}
-        </ThemeProvider>
+        <CsrfProvider>
+          <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false}>
+            {children}
+          </ThemeProvider>
+        </CsrfProvider>
       </body>
     </html>
   );

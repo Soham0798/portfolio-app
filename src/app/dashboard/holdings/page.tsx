@@ -56,13 +56,19 @@ export default function HoldingsPage() {
         sgb: 'value',
         manual: 'value'
     });
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+    const toggleGroup = (type: string) => {
+        setExpandedGroups(prev => ({ ...prev, [type]: prev[type] === false ? true : (prev[type] === undefined ? false : !prev[type]) }));
+    };
+    const isGroupExpanded = (type: string) => expandedGroups[type] === true;
 
     useEffect(() => {
         const controller = new AbortController();
         const signal = controller.signal;
 
-        async function fetchData() {
-            setLoading(true);
+        async function fetchData(silent = false) {
+            if (!silent) setLoading(true);
             try {
                 const profileParam = profile === 'combined' ? '' : `?profile=${profile}`;
                 const res = await fetch(`/api/holdings${profileParam}`, { signal });
@@ -75,10 +81,28 @@ export default function HoldingsPage() {
                 if (err.name === 'AbortError') return;
                 console.error('Failed to fetch holdings:', err);
             } finally {
-                if (!signal.aborted) setLoading(false);
+                if (!signal.aborted && !silent) setLoading(false);
             }
         }
-        fetchData();
+
+        // Load cached data first, then refresh prices silently
+        fetchData().then(async () => {
+            if (signal.aborted) return;
+            try {
+                const res = await fetch('/api/prices/refresh-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profileId: profile }),
+                    signal,
+                });
+                if (res.ok && !signal.aborted) {
+                    await fetchData(true);
+                }
+            } catch (err: any) {
+                if (err.name === 'AbortError') return;
+                console.error('Price refresh failed:', err);
+            }
+        });
 
         return () => controller.abort();
     }, [profile]);
@@ -89,6 +113,7 @@ export default function HoldingsPage() {
     const funds = useMemo(() => holdings.filter(h => h.assetType === 'MUTUAL_FUND'), [holdings]);
     const sgbs = useMemo(() => holdings.filter(h => h.assetType === 'SGB'), [holdings]);
     const nps = useMemo(() => holdings.filter(h => h.assetType === 'NPS'), [holdings]);
+    const otherHoldings = useMemo(() => holdings.filter(h => !['STOCK', 'ETF', 'MUTUAL_FUND', 'SGB', 'NPS'].includes(h.assetType)), [holdings]);
 
     const stocksValue = stocks.reduce((s, h) => s + h.currentValue, 0);
     const stocksPnl = stocks.reduce((s, h) => s + h.totalGain, 0);
@@ -103,7 +128,7 @@ export default function HoldingsPage() {
             name: h.name || h.tickerSymbol || 'SGB',
             currentValue: h.currentValue,
             totalInvested: h.totalInvested,
-            updatedAt: new Date().toISOString(), // Use current date for SGBs
+            updatedAt: new Date().toISOString(),
         }));
         
         const npsMapped = nps.map(h => ({
@@ -113,7 +138,16 @@ export default function HoldingsPage() {
             currentValue: h.currentValue,
             totalInvested: h.totalInvested,
             lifeCover: 0,
-            updatedAt: new Date().toISOString(), // Use current date for NPS
+            updatedAt: new Date().toISOString(),
+        }));
+
+        const otherMapped = otherHoldings.map(h => ({
+            _id: h.instrumentId,
+            assetType: h.assetType,
+            name: h.name || h.tickerSymbol || h.assetType,
+            currentValue: h.currentValue,
+            totalInvested: h.totalInvested,
+            updatedAt: new Date().toISOString(),
         }));
         
         const mappedManual = manualAssets.map(a => {
@@ -126,8 +160,8 @@ export default function HoldingsPage() {
             return { ...a, lifeCover: (a as any).lifeCover || 0 };
         });
 
-        return [...mappedManual, ...sgbMapped, ...npsMapped];
-    }, [manualAssets, sgbs, nps]);
+        return [...mappedManual, ...sgbMapped, ...npsMapped, ...otherMapped];
+    }, [manualAssets, sgbs, nps, otherHoldings]);
 
     const manualValue = combinedOtherAssets.reduce((s, a) => s + (a.currentValue || 0), 0);
     const manualInvested = combinedOtherAssets.reduce((s, a) => s + (a.totalInvested || 0), 0);
@@ -414,9 +448,33 @@ export default function HoldingsPage() {
                                 acc[curr.assetType].push(curr);
                                 return acc;
                             }, {} as Record<string, typeof sortedManual>)
-                        ).map(([type, assets]) => (
+                        ).map(([type, assets]) => {
+                            const groupTotal = assets.reduce((s, a) => s + (a.currentValue || 0), 0);
+                            const groupPnl = assets.reduce((s, a) => s + ((a.currentValue || 0) - (a.totalInvested || 0)), 0);
+                            const expanded = isGroupExpanded(type);
+                            return (
                             <div key={type} className={styles.assetGroup}>
-                                <div className={styles.groupHeader}>{type}</div>
+                                <div className={styles.groupHeader} onClick={() => toggleGroup(type)}>
+                                    <div className={styles.groupHeaderLeft}>
+                                        <span className={styles.groupName}>{type}</span>
+                                        <span className={styles.groupCount}>{assets.length}</span>
+                                        <span className={styles.groupTotal}>₹{formatCurrency(groupTotal)}</span>
+                                        <span className={`${styles.groupPnl} ${groupPnl >= 0 ? styles.up : styles.down}`}>
+                                            {groupPnl >= 0 ? '▲' : '▼'} {groupPnl >= 0 ? '+' : ''}{formatCurrency(groupPnl)}
+                                        </span>
+                                    </div>
+                                    <svg className={`${styles.groupChevron} ${expanded ? styles.groupChevronOpen : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
+                                </div>
+                                <AnimatePresence initial={false}>
+                                {expanded && (
+                                <motion.div
+                                    key={`group-${type}`}
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                                    style={{ overflow: 'hidden' }}
+                                >
                                 {assets.map((a, i) => {
                                     const returns = (a.currentValue || 0) - (a.totalInvested || 0);
                                     const lastUpdated = a.updatedAt ? Math.floor((Date.now() - new Date(a.updatedAt).getTime()) / (1000 * 60 * 60 * 24)) : 0;
@@ -480,8 +538,12 @@ export default function HoldingsPage() {
                                         </motion.div>
                                     );
                                 })}
+                                </motion.div>
+                                )}
+                                </AnimatePresence>
                             </div>
-                        ))}
+                            );
+                        })}
                         {sortedManual.length === 0 && <div style={{ padding: '24px', textAlign: 'center', color: 'var(--paper-dim)' }}>No manual assets found</div>}
                     </div>
                 </motion.div>
@@ -494,6 +556,8 @@ export default function HoldingsPage() {
 
 function HoldingRow({ holding, badgeColor, formatCurrency }: { holding: Holding, badgeColor: string, formatCurrency: (n: number) => string }) {
     const gainPct = holding.totalInvested ? (holding.totalGain / holding.totalInvested) * 100 : 0;
+    const prevValue = holding.currentValue - holding.dayGain;
+    const dayGainPct = prevValue ? (holding.dayGain / prevValue) * 100 : 0;
     
     return (
         <motion.div layout initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }} className={styles.holding}>
@@ -526,7 +590,7 @@ function HoldingRow({ holding, badgeColor, formatCurrency }: { holding: Holding,
                         </div>
                         <div className={`${styles.chip} ${holding.dayGain >= 0 ? styles.up : styles.down}`}>
                             <span className={styles.chipLabel}>Day</span>
-                            {holding.dayGain >= 0 ? '▲' : '▼'}{formatCurrency(Math.abs(holding.dayGain))}
+                            {holding.dayGain >= 0 ? '▲' : '▼'}{Math.abs(dayGainPct).toFixed(2)}% (₹{formatCurrency(Math.abs(holding.dayGain))})
                         </div>
                     </div>
                 </div>
@@ -537,6 +601,8 @@ function HoldingRow({ holding, badgeColor, formatCurrency }: { holding: Holding,
 
 function SGBRow({ holding, formatCurrency }: { holding: Holding, formatCurrency: (n: number) => string }) {
     const gainPct = holding.totalInvested ? (holding.totalGain / holding.totalInvested) * 100 : 0;
+    const prevValue = holding.currentValue - holding.dayGain;
+    const dayGainPct = prevValue ? (holding.dayGain / prevValue) * 100 : 0;
     // For SGB, qty = grams of gold, currentPrice = gold price per gram
     const gramsHeld = holding.currentQty;
     const goldPricePerGram = holding.currentPrice;
@@ -575,7 +641,7 @@ function SGBRow({ holding, formatCurrency }: { holding: Holding, formatCurrency:
                         </div>
                         <div className={`${styles.chip} ${holding.dayGain >= 0 ? styles.up : styles.down}`}>
                             <span className={styles.chipLabel}>Day</span>
-                            {holding.dayGain >= 0 ? '▲' : '▼'}{formatCurrency(Math.abs(holding.dayGain))}
+                            {holding.dayGain >= 0 ? '▲' : '▼'}{Math.abs(dayGainPct).toFixed(2)}% (₹{formatCurrency(Math.abs(holding.dayGain))})
                         </div>
                     </div>
                 </div>

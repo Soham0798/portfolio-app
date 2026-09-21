@@ -206,13 +206,14 @@
 
 .holdingChips { display: flex; gap: 7px; margin-left: auto; align-items: center; }
 .chip {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
-    padding: 4px 9px; border-radius: 7px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+    padding: 5px 11px; border-radius: 7px;
     display: flex; align-items: center; gap: 3px; white-space: nowrap;
+    font-weight: 500;
 }
 .chip.up { background: rgba(79,176,140,0.12); color: var(--gain); }
 .chip.down { background: rgba(216,115,95,0.12); color: var(--loss); }
-.chipLabel { color: var(--paper-faint); font-family: 'Inter', sans-serif; font-size: 9.5px; margin-right: 2px; }
+.chipLabel { color: var(--paper-faint); font-family: 'Inter', sans-serif; font-size: 10.5px; margin-right: 2px; }
 .editBtn {
     width: 26px; height: 26px; border-radius: 7px;
     border: 1px solid var(--hairline-soft);
@@ -249,15 +250,69 @@
     .sectionHead { align-items: flex-start; }
 }
 .assetGroup {
-    margin-bottom: 24px;
+    margin-bottom: 0;
+    border-top: 1px solid var(--hairline-soft);
 }
+.assetGroup:first-child { border-top: none; }
 
 .groupHeader {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--paper-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin: 16px 22px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 22px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    user-select: none;
 }
+.groupHeader:hover { background: rgba(91,141,239,0.03); }
 
+.groupHeaderLeft {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.groupChevron {
+    width: 16px; height: 16px;
+    color: var(--paper-faint);
+    transition: transform 0.25s ease;
+    transform: rotate(0deg);
+    flex-shrink: 0;
+}
+.groupChevronOpen { transform: rotate(90deg); }
+
+.groupName {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 520;
+    color: var(--paper);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.groupCount {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--paper-faint);
+    background: var(--hairline-soft);
+    padding: 2px 7px;
+    border-radius: 10px;
+}
+.groupHeaderRight {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.groupTotal {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 480;
+    color: var(--paper);
+}
+.groupPnl {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+.groupPnl.up { background: rgba(79,176,140,0.12); color: var(--gain); }
+.groupPnl.down { background: rgba(216,115,95,0.12); color: var(--loss); }

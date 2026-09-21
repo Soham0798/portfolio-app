@@ -142,75 +142,134 @@ export function calculateHealthScore(data: PortfolioData): HealthScore {
     return { total: Math.round(total), subScores };
 }
 
-export function generateInsights(data: PortfolioData): Insight[] {
+export function generateInsights(data: PortfolioData, holdings?: Array<{name: string; tickerSymbol: string; assetType: string; currentValue: number; totalGain: number; dayGain: number; totalInvested: number; avgBuyPrice: number; currentPrice: number; currentQty: number}>): Insight[] {
     const insights: Insight[] = [];
     const totalAssets = data.assets.reduce((sum, a) => sum + a.value, 0) || 1;
     const liquidAssets = data.assets.filter(a => a.isLiquid).reduce((sum, a) => sum + a.value, 0);
+    const fmt = (n: number) => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.abs(n));
+    const fmtL = (n: number) => `₹${(Math.abs(n) / 100000).toFixed(1)}L`;
 
-    // Liability prepay vs invest
+    // === SPECIFIC INSIGHTS FROM ACTUAL HOLDINGS ===
+    if (holdings && holdings.length > 0) {
+        // Top gainer today
+        const sorted = [...holdings].sort((a, b) => b.dayGain - a.dayGain);
+        const topGainer = sorted[0];
+        if (topGainer && topGainer.dayGain > 0) {
+            const prevVal = topGainer.currentValue - topGainer.dayGain;
+            const pct = prevVal > 0 ? (topGainer.dayGain / prevVal) * 100 : 0;
+            insights.push({
+                id: 'top-gainer',
+                type: 'Opportunity',
+                message: `${topGainer.name} gained ₹${fmt(topGainer.dayGain)} (+${pct.toFixed(1)}%) today — your best performer.`,
+                actionLabel: 'View holdings',
+                actionHref: '/dashboard/holdings'
+            });
+        }
+
+        // Top loser today
+        const topLoser = sorted[sorted.length - 1];
+        if (topLoser && topLoser.dayGain < 0 && topLoser.tickerSymbol !== topGainer?.tickerSymbol) {
+            const prevVal = topLoser.currentValue - topLoser.dayGain;
+            const pct = prevVal > 0 ? (topLoser.dayGain / prevVal) * 100 : 0;
+            insights.push({
+                id: 'top-loser',
+                type: 'Urgent',
+                message: `${topLoser.name} dropped ₹${fmt(topLoser.dayGain)} (${pct.toFixed(1)}%) today — your biggest drag.`,
+                actionLabel: 'Review position',
+                actionHref: '/dashboard/holdings'
+            });
+        }
+
+        // Biggest single position concentration
+        const byValue = [...holdings].sort((a, b) => b.currentValue - a.currentValue);
+        const biggest = byValue[0];
+        if (biggest && holdings.length > 1) {
+            const pct = (biggest.currentValue / totalAssets) * 100;
+            if (pct > 25) {
+                insights.push({
+                    id: `concentration-${biggest.tickerSymbol}`,
+                    type: 'Rebalance',
+                    message: `${biggest.name} is ${Math.round(pct)}% of your portfolio (₹${fmt(biggest.currentValue)}). Consider trimming to reduce single-stock risk.`,
+                    actionLabel: 'View allocation',
+                    actionHref: '/dashboard/holdings'
+                });
+            }
+        }
+
+        // Worst underperformer (by total P&L %)
+        const withPnlPct = holdings
+            .filter(h => h.totalInvested > 0)
+            .map(h => ({ ...h, pnlPct: (h.totalGain / h.totalInvested) * 100 }))
+            .sort((a, b) => a.pnlPct - b.pnlPct);
+        const worstPerformer = withPnlPct[0];
+        if (worstPerformer && worstPerformer.pnlPct < -10) {
+            insights.push({
+                id: `underperformer-${worstPerformer.tickerSymbol}`,
+                type: 'Rebalance',
+                message: `${worstPerformer.name} is down ${worstPerformer.pnlPct.toFixed(1)}% since purchase (Avg: ₹${fmt(worstPerformer.avgBuyPrice)}, CMP: ₹${fmt(worstPerformer.currentPrice)}). Review if the thesis still holds.`,
+                actionLabel: 'Review holding',
+                actionHref: '/dashboard/holdings'
+            });
+        }
+
+        // Best performer (by total P&L %)
+        const bestPerformer = withPnlPct[withPnlPct.length - 1];
+        if (bestPerformer && bestPerformer.pnlPct > 50 && bestPerformer.tickerSymbol !== worstPerformer?.tickerSymbol) {
+            insights.push({
+                id: `star-performer-${bestPerformer.tickerSymbol}`,
+                type: 'Opportunity',
+                message: `${bestPerformer.name} is up +${bestPerformer.pnlPct.toFixed(1)}% (₹${fmt(bestPerformer.totalGain)} profit). Consider booking partial profits if it's a large position.`,
+                actionLabel: 'View position',
+                actionHref: '/dashboard/holdings'
+            });
+        }
+    }
+
+    // === GOAL-SPECIFIC INSIGHTS ===
+    if (data.goals.length > 0) {
+        data.goals.forEach(g => {
+            const shortfall = g.target - g.current;
+            if (shortfall > 0 && g.timelineYears > 0) {
+                const monthlyNeeded = shortfall / (g.timelineYears * 12);
+                const targetYear = new Date().getFullYear() + g.timelineYears;
+                insights.push({
+                    id: `goal-${g.name}`,
+                    type: shortfall > g.target * 0.5 ? 'Urgent' : 'Opportunity',
+                    message: `${g.name} is ₹${fmt(shortfall)} short — you need ₹${fmt(monthlyNeeded)}/mo to hit ₹${fmt(g.target)} by ${targetYear}.`,
+                    actionLabel: 'View goals',
+                    actionHref: '/dashboard/planning'
+                });
+            }
+        });
+    }
+
+    // === STRUCTURAL INSIGHTS ===
+
+    // Liability prepay opportunity
     const highInterestLiabilities = data.liabilities.filter(l => l.interestRate >= 10);
     if (highInterestLiabilities.length > 0 && liquidAssets > data.userProfile.monthlyExpenses * 8) {
         const excessLiquidity = liquidAssets - (data.userProfile.monthlyExpenses * 6);
         if (excessLiquidity > 50000) {
+            const savingsPerYear = (excessLiquidity * highInterestLiabilities[0].interestRate) / 100;
             insights.push({
                 id: 'prepay',
                 type: 'Opportunity',
-                message: `You have ₹${(excessLiquidity / 100000).toFixed(1)}L in excess idle cash. Prepaying your ${highInterestLiabilities[0].name} could save you ₹${((excessLiquidity * highInterestLiabilities[0].interestRate) / 100).toLocaleString('en-IN')} in interest this year.`,
+                message: `You have ₹${fmt(excessLiquidity)} excess cash. Prepaying ${highInterestLiabilities[0].name} (${highInterestLiabilities[0].interestRate}% p.a.) could save ₹${fmt(savingsPerYear)} in interest this year.`,
                 actionLabel: 'Calculate savings',
                 actionHref: '/dashboard/liabilities'
             });
         }
     }
 
-    // Concentration Risk
-    data.assets.forEach(a => {
-        if ((a.value / totalAssets) > 0.3) {
-            insights.push({
-                id: `concentration-${a.name}`,
-                type: 'Rebalance',
-                message: `${a.name} makes up ${Math.round((a.value / totalAssets) * 100)}% of your portfolio. Consider trimming to reduce single-asset risk.`,
-                actionLabel: 'View allocation',
-                actionHref: '/dashboard/holdings'
-            });
-        }
-    });
-
-    // Age-Risk Alignment
-    let equityAssets = 0;
-    data.assets.forEach(a => {
-        if (a.type === 'STOCK' || a.type === 'MUTUAL_FUND' || a.type === 'ETF' || a.type === 'Equity') {
-            equityAssets += a.value;
-        }
-    });
-    
-    const expectedEquityPct = 110 - data.userProfile.age;
-    const actualEquityPct = (equityAssets / totalAssets) * 100;
-    if (actualEquityPct < expectedEquityPct - 15) {
-        insights.push({
-            id: 'age-risk',
-            type: 'Opportunity',
-            message: `At age ${data.userProfile.age}, your portfolio is too conservative (${Math.round(actualEquityPct)}% equity vs recommended ${expectedEquityPct}%). You might fall short of long-term goals.`,
-            actionLabel: 'Fix asset mix',
-            actionHref: '/dashboard/holdings'
-        });
-    } else if (actualEquityPct > expectedEquityPct + 15) {
-        insights.push({
-            id: 'age-risk-high',
-            type: 'Rebalance',
-            message: `At age ${data.userProfile.age}, your portfolio is highly aggressive (${Math.round(actualEquityPct)}% equity vs recommended ${expectedEquityPct}%). Consider diversifying to protect your wealth.`,
-            actionLabel: 'Review exposure',
-            actionHref: '/dashboard/holdings'
-        });
-    }
-
-    // Emergency Fund check
+    // Emergency Fund
     if (data.userProfile.monthlyExpenses > 0) {
         const monthsOfLiquidity = liquidAssets / data.userProfile.monthlyExpenses;
         if (monthsOfLiquidity < 3) {
+            const needed = (data.userProfile.monthlyExpenses * 6) - liquidAssets;
             insights.push({
                 id: 'emergency-fund',
                 type: 'Urgent',
-                message: `Your liquid assets only cover ${monthsOfLiquidity.toFixed(1)} months of expenses. Aim for 3-6 months to build a secure emergency fund.`,
+                message: `Emergency fund covers only ${monthsOfLiquidity.toFixed(1)} months. You need ₹${fmt(needed)} more to reach a safe 6-month cushion.`,
                 actionLabel: 'Add liquid assets',
                 actionHref: '/dashboard/manualassets'
             });
@@ -223,60 +282,78 @@ export function generateInsights(data: PortfolioData): Insight[] {
         insights.push({
             id: 'debt-burden',
             type: 'Urgent',
-            message: `Your debt is over 50% of your total assets. Focus on aggressively paying down high-interest liabilities to reduce financial stress.`,
+            message: `Debt is ${Math.round((totalLiabilities / totalAssets) * 100)}% of assets (₹${fmt(totalLiabilities)} vs ₹${fmt(totalAssets)}). Focus on paying down high-interest liabilities first.`,
             actionLabel: 'View liabilities',
             actionHref: '/dashboard/liabilities'
         });
     }
 
-    // Insurance Adequacy
+    // Age-Risk Alignment
+    let equityAssets = 0;
+    data.assets.forEach(a => {
+        if (a.type === 'STOCK' || a.type === 'MUTUAL_FUND' || a.type === 'ETF' || a.type === 'Equity') {
+            equityAssets += a.value;
+        }
+    });
+    const expectedEquityPct = 110 - data.userProfile.age;
+    const actualEquityPct = (equityAssets / totalAssets) * 100;
+    if (actualEquityPct < expectedEquityPct - 15) {
+        insights.push({
+            id: 'age-risk',
+            type: 'Opportunity',
+            message: `At age ${data.userProfile.age}, equity is ${Math.round(actualEquityPct)}% vs recommended ${expectedEquityPct}%. You may miss long-term growth.`,
+            actionLabel: 'Fix asset mix',
+            actionHref: '/dashboard/holdings'
+        });
+    } else if (actualEquityPct > expectedEquityPct + 15) {
+        insights.push({
+            id: 'age-risk-high',
+            type: 'Rebalance',
+            message: `At age ${data.userProfile.age}, equity is ${Math.round(actualEquityPct)}% vs recommended ${expectedEquityPct}%. Consider diversifying into debt/gold.`,
+            actionLabel: 'Review exposure',
+            actionHref: '/dashboard/holdings'
+        });
+    }
+
+    // Insurance check
     if (data.userProfile.monthlyIncome > 0) {
         const recommendedCover = data.userProfile.monthlyIncome * 12 * 10;
         if (data.userProfile.insuranceCover < recommendedCover * 0.5) {
+            const gap = recommendedCover - data.userProfile.insuranceCover;
             insights.push({
                 id: 'insurance-gap',
                 type: 'Urgent',
-                message: `Your current life cover is critically low compared to your income. A standard rule of thumb is 10x your annual income (₹${(recommendedCover / 100000).toFixed(1)}L).`,
+                message: `Life cover gap of ₹${fmtL(gap)}. Rule of thumb: 10x annual income = ${fmtL(recommendedCover)}.`,
                 actionLabel: 'Update insurance',
                 actionHref: '/dashboard/settings'
             });
         }
     }
 
-    // Investment Suggestions (Portfolio Gaps)
-    let hasGold = false;
-    let hasFixedIncome = false;
-    data.assets.forEach(a => {
-        if (a.type === 'SGB' || a.type === 'GOLD') hasGold = true;
-        if (a.type === 'FD' || a.type === 'EPF' || a.type === 'PPF' || a.type === 'BOND') hasFixedIncome = true;
-    });
-
-    if (totalAssets <= 1) {
-        insights.push({
-            id: 'start-investing',
-            type: 'Opportunity',
-            message: `Your portfolio is empty. Consider starting your investment journey with broad-market Index Funds or a simple Fixed Deposit to get the ball rolling.`,
-            actionLabel: 'Add your first asset',
-            actionHref: '/dashboard/manualassets'
-        });
-    }
-
+    // Profile incomplete
     if (!data.userProfile.isProfileConfigured) {
         insights.push({
             id: 'setup-profile',
             type: 'Urgent',
-            message: `Your financial profile is incomplete. Add your date of birth and save your profile to unlock personalized insights like emergency fund checks and insurance adequacy.`,
+            message: `Financial profile is incomplete. Add your DOB and income to unlock personalized insights.`,
             actionLabel: 'Complete profile',
             actionHref: '/dashboard/planning'
         });
     }
 
+    // Portfolio gap checks
+    let hasGold = false, hasFixedIncome = false;
+    data.assets.forEach(a => {
+        if (a.type === 'SGB' || a.type === 'GOLD') hasGold = true;
+        if (a.type === 'FD' || a.type === 'EPF' || a.type === 'PPF' || a.type === 'BOND') hasFixedIncome = true;
+    });
+
     if (!hasGold && totalAssets > 100000) {
         insights.push({
             id: 'suggest-gold',
             type: 'Opportunity',
-            message: `You have zero exposure to Gold. Consider allocating 5-10% of your portfolio to Sovereign Gold Bonds (SGBs) as a hedge against inflation and market volatility.`,
-            actionLabel: 'Explore Assets',
+            message: `Zero gold exposure. Allocating 5-10% (~₹${fmt(totalAssets * 0.07)}) to SGBs can hedge inflation and market drops.`,
+            actionLabel: 'Explore SGBs',
             actionHref: '/dashboard/manualassets'
         });
     }
@@ -285,29 +362,18 @@ export function generateInsights(data: PortfolioData): Insight[] {
         insights.push({
             id: 'suggest-fixed-income',
             type: 'Opportunity',
-            message: `Your portfolio lacks stable fixed-income assets (like PPF or FDs). Building a debt foundation adds stability during market corrections and provides guaranteed returns.`,
+            message: `No fixed-income assets. Adding PPF/FDs can stabilize returns during equity corrections.`,
             actionLabel: 'Add Fixed Income',
             actionHref: '/dashboard/manualassets'
         });
     }
 
-    const excessLiquidity = liquidAssets - (data.userProfile.monthlyExpenses * 6);
-    if (excessLiquidity > 100000 && totalLiabilities === 0) {
-        insights.push({
-            id: 'suggest-invest-cash',
-            type: 'Opportunity',
-            message: `You have ₹${(excessLiquidity / 100000).toFixed(1)}L in excess idle cash. Consider deploying this into Index Funds or Fixed Deposits rather than letting inflation erode it.`,
-            actionLabel: 'Invest now',
-            actionHref: '/dashboard/manualassets'
-        });
-    }
-
-    // Generic Insight if none are triggered
+    // Fallback
     if (insights.length === 0) {
         insights.push({
             id: 'stay-course',
             type: 'Opportunity',
-            message: `Your portfolio is looking well-balanced and healthy! Keep investing consistently to reach your long-term goals.`,
+            message: `Portfolio is well-balanced. Keep investing consistently to reach your goals.`,
             actionLabel: 'View performance',
             actionHref: '/dashboard/history'
         });
