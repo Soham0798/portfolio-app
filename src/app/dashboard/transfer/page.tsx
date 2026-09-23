@@ -35,7 +35,7 @@ export default function TransferPage() {
         try {
             const res = await fetch('/api/settings/transfer', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'x-portfolio-action': '1', 'Content-Type': 'application/json' },
                 body: JSON.stringify({ fromProfile, toProfile }),
             });
 

@@ -4,6 +4,7 @@ import Instrument from '@/models/Instrument';
 import Transaction from '@/models/Transaction';
 import ManualAsset from '@/models/ManualAssets';
 import DailySnapshot from '@/models/DailySnapshots';
+import SIP from '@/models/SIP';
 import { refreshAllPrices } from '@/lib/prices';
 
 export const maxDuration = 60; // Max allowed for Vercel Hobby
@@ -40,15 +41,17 @@ export async function GET(req: NextRequest) {
     }
 
     if (action === 'daily-run') {
-        // Combined action: refresh prices first, then generate snapshot
+        // Combined action: refresh prices first, execute SIPs, then generate snapshot
         const priceResults = await refreshAllPrices();
+        const sipResults = await executeSIPs();
         const snapshotRes = await generateSnapshotInternal();
         if (!snapshotRes) {
-            return NextResponse.json({ message: 'Prices refreshed but no transactions found for snapshot', prices: priceResults });
+            return NextResponse.json({ message: 'Prices refreshed but no transactions found for snapshot', prices: priceResults, sips: sipResults });
         }
         return NextResponse.json({
             message: `Daily run complete for ${snapshotRes.dateString}`,
             prices: priceResults,
+            sips: sipResults,
             snapshot: {
                 totalValue: snapshotRes.totalValue,
                 totalDayGain: snapshotRes.totalDayGain,
@@ -59,6 +62,48 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }
 
+async function executeSIPs() {
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(now.getTime() + istOffset);
+    istDate.setHours(23, 59, 59, 999); // End of today in IST
+
+    const dueSips = await SIP.find({
+        status: 'ACTIVE',
+        nextExecutionDate: { $lte: istDate }
+    }).populate('instrumentId');
+
+    let executedCount = 0;
+
+    for (const sip of dueSips) {
+        if (!sip.instrumentId || !sip.instrumentId.currentPrice) continue;
+
+        const price = sip.instrumentId.currentPrice;
+        const quantity = sip.amount / price;
+
+        await Transaction.create({
+            userId: sip.userId,
+            profile: sip.profile,
+            instrumentId: sip.instrumentId._id,
+            type: 'BUY',
+            date: new Date(istDate.getTime() - istOffset), // Keep as UTC for consistency
+            quantity,
+            price,
+            fees: 0,
+            notes: 'Automated SIP Execution'
+        });
+
+        // Advance next execution date by 1 month
+        const nextDate = new Date(sip.nextExecutionDate);
+        nextDate.setMonth(nextDate.getMonth() + 1);
+        sip.nextExecutionDate = nextDate;
+        await sip.save();
+
+        executedCount++;
+    }
+
+    return { executed: executedCount, pending: dueSips.length - executedCount };
+}
 
 
 async function generateSnapshotInternal() {

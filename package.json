@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "framer-motion": "^13.1.0",
+    "jose": "^6.2.12",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.37.0",
     "mongoose": "^9.9.2",

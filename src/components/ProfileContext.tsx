@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState } from 'react';
 
-type Profile = 'sameer' | 'snehal' | 'soham' | 'combined';
+type Profile = 'sameer' | 'snehal' | 'soham' | 'combined' | 'personal' | 'retirement';
 
 interface ProfileContextType {
     profile: Profile;

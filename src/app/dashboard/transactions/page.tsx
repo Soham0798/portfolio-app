@@ -121,7 +121,7 @@ export default function TransactionsPage() {
 
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'x-portfolio-action': '1', 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...form,
                     quantity: parseFloat(form.quantity),
@@ -182,7 +182,7 @@ export default function TransactionsPage() {
     const confirmDelete = async () => {
         if (!deleteConfirmId) return;
         try {
-            await fetch(`/api/transactions/${deleteConfirmId}`, { method: 'DELETE' });
+            await fetch(`/api/transactions/${deleteConfirmId}`, { method: 'DELETE', headers: { 'x-portfolio-action': '1' } });
             fetchTransactions();
         } catch (err) {
             console.error('Failed to delete:', err);

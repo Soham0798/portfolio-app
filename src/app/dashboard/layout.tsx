@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ProfileProvider, useProfile } from '@/components/ProfileContext';
 import Select from '@/components/Select';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import styles from './layout.module.css';
@@ -127,10 +127,29 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     const [clearModalOpen, setClearModalOpen] = useState(false);
     const [clearProfileInput, setClearProfileInput] = useState('');
     const [clearError, setClearError] = useState('');
+    const [currentUser, setCurrentUser] = useState<any>(null);
+
+    useEffect(() => {
+        fetch('/api/auth/me')
+            .then(res => res.json())
+            .then(data => {
+                if (data.user) {
+                    setCurrentUser(data.user);
+                    // Automatically switch to a valid demo profile if logged in as demo
+                    if (data.user.username === 'demo' && !['personal', 'retirement', 'combined'].includes(profile.toLowerCase())) {
+                        setProfile('personal');
+                    }
+                }
+            })
+            .catch(() => {});
+    }, []);
+
+    const isDemo = currentUser?.username === 'demo';
+    const PROFILES = isDemo ? ['personal', 'retirement', 'combined'] : ['sameer', 'snehal', 'soham', 'combined'];
 
     const handleLogout = async () => {
         setAccountDropdownOpen(false);
-        await fetch('/api/auth/logout', { method: 'POST' });
+        await fetch('/api/auth/logout', { method: 'POST', headers: { 'x-portfolio-action': '1' } });
         router.push('/auth/login');
     };
 
@@ -153,7 +172,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         const profileToDelete = c;
 
         try {
-            const res = await fetch(`/api/settings/clear-data?profile=${profileToDelete}`, { method: 'DELETE' });
+            const res = await fetch(`/api/settings/clear-data?profile=${profileToDelete}`, { method: 'DELETE', headers: { 'x-portfolio-action': '1' } });
             if (res.ok) {
                 setClearModalOpen(false);
                 setClearProfileInput('');
@@ -252,9 +271,9 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                         onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
                         style={{ cursor: 'pointer' }}
                     >
-                        <div className={styles.avatar}>SA</div>
+                        <div className={styles.avatar}>{currentUser ? currentUser.username.substring(0, 2).toUpperCase() : 'SA'}</div>
                         <div className={styles.accountInfo}>
-                            <span className={styles.accountName}>Sameer</span>
+                            <span className={styles.accountName}>{currentUser ? currentUser.username.charAt(0).toUpperCase() + currentUser.username.slice(1) : 'Sameer'}</span>
                             <span style={{ 
                                 background: '#ef4444', 
                                 color: 'white', 
@@ -333,21 +352,24 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
                     <div className={styles.profileSwitcher} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <div className={`tab-group hide-on-mobile`}>
-                            {(['sameer', 'snehal', 'soham', 'combined'] as const).map((p) => {
-                                let dotStyle = {};
-                                if (p === 'sameer') dotStyle = { background: '#8b7cf6' };
-                                else if (p === 'snehal') dotStyle = { background: '#c084fc' };
+                            {PROFILES.map((p) => {
+                                let dotStyle: any = {};
+                                if (p === 'sameer' || p === 'personal') dotStyle = { background: '#8b7cf6' };
+                                else if (p === 'snehal' || p === 'retirement') dotStyle = { background: '#c084fc' };
                                 else if (p === 'soham') dotStyle = { background: '#4fb797' };
                                 else dotStyle = { background: '#5b9bf7' };
+
+                                let label = p.charAt(0).toUpperCase() + p.slice(1);
+                                if (p === 'combined') label = 'Family combined';
 
                                 return (
                                     <button
                                         key={p}
                                         className={`tab ${profile === p ? 'active' : ''}`}
-                                        onClick={() => setProfile(p)}
+                                        onClick={() => setProfile(p as any)}
                                     >
-                                        <span className="pavatar" style={dotStyle}>{p.charAt(0).toUpperCase()}</span>
-                                        {p.charAt(0).toUpperCase() + p.slice(1)}
+                                        <span className="pavatar" style={dotStyle}>{label.charAt(0)}</span>
+                                        {label}
                                     </button>
                                 );
                             })}
@@ -357,12 +379,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                             <Select
                                 value={profile}
                                 onChange={(value) => setProfile(value as any)}
-                                options={[
-                                    { value: 'sameer', label: 'Sameer' },
-                                    { value: 'snehal', label: 'Snehal' },
-                                    { value: 'soham', label: 'Soham' },
-                                    { value: 'combined', label: 'Combined' }
-                                ]}
+                                options={PROFILES.map((p) => {
+                                    let label = p.charAt(0).toUpperCase() + p.slice(1);
+                                    if (p === 'combined') label = 'Family combined';
+                                    return { value: p, label };
+                                })}
                             />
                         </div>
                         <ThemeToggle />

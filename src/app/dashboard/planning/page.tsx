@@ -68,7 +68,7 @@ export default function PlanningPage() {
     async function saveProfile() {
         await fetch('/api/profile', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'x-portfolio-action': '1', 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...userProfile, profile: profile === 'combined' ? 'default' : profile })
         });
         alert('Profile saved!');
@@ -80,7 +80,7 @@ export default function PlanningPage() {
         const method = editLiabilityId ? 'PUT' : 'POST';
         await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'x-portfolio-action': '1', 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...newLiability, profile: profile === 'combined' ? 'default' : profile })
         });
         setNewLiability({ name: '', type: 'Home', outstanding: '', emi: '', interestRate: '' });
@@ -90,7 +90,7 @@ export default function PlanningPage() {
 
     async function deleteLiability(id: string) {
         if (!confirm('Are you sure?')) return;
-        await fetch(`/api/liabilities/${id}`, { method: 'DELETE' });
+        await fetch(`/api/liabilities/${id}`, { method: 'DELETE', headers: { 'x-portfolio-action': '1' } });
         fetchData();
     }
 
@@ -100,7 +100,7 @@ export default function PlanningPage() {
         const method = editGoalId ? 'PUT' : 'POST';
         await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'x-portfolio-action': '1', 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...newGoal, profile: profile === 'combined' ? 'default' : profile })
         });
         setNewGoal({ name: '', target: '', current: '', timelineYears: '' });
@@ -110,7 +110,7 @@ export default function PlanningPage() {
 
     async function deleteGoal(id: string) {
         if (!confirm('Are you sure?')) return;
-        await fetch(`/api/goals/${id}`, { method: 'DELETE' });
+        await fetch(`/api/goals/${id}`, { method: 'DELETE', headers: { 'x-portfolio-action': '1' } });
         fetchData();
     }
 

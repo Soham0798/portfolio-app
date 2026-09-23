@@ -91,7 +91,7 @@ export default function HoldingsPage() {
             try {
                 const res = await fetch('/api/prices/refresh-user', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'x-portfolio-action': '1', 'Content-Type': 'application/json' },
                     body: JSON.stringify({ profileId: profile }),
                     signal,
                 });

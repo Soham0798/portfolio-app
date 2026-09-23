@@ -72,6 +72,11 @@ export default function AssetsPage() {
     const [isLiveRefreshing, setIsLiveRefreshing] = useState(false);
     const [liveMetalsPrice, setLiveMetalsPrice] = useState<{ gold: number | null, silver: number | null }>({ gold: null, silver: null });
 
+    const [sipForm, setSipForm] = useState({ amount: '', dateOfMonth: '5' });
+    const [hasActiveSip, setHasActiveSip] = useState(false);
+    const [loadingSip, setLoadingSip] = useState(false);
+    const [sipSuccess, setSipSuccess] = useState('');
+
     useEffect(() => {
         const fetchMetals = async () => {
             try {
@@ -205,7 +210,7 @@ export default function AssetsPage() {
             try {
                 const res = await fetch('/api/prices/refresh-user', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'x-portfolio-action': '1', 'Content-Type': 'application/json' },
                     body: JSON.stringify({ profileId: profile }),
                     signal,
                 });
@@ -340,7 +345,7 @@ export default function AssetsPage() {
 
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'x-portfolio-action': '1', 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
@@ -375,7 +380,7 @@ export default function AssetsPage() {
 
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'x-portfolio-action': '1', 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...form,
                     currentValue: parseFloat(form.currentValue),
@@ -437,6 +442,71 @@ export default function AssetsPage() {
         }
         setEditingId(asset._id);
         setShowModal(true);
+
+        if (asset.isMarket) {
+            setSipForm({ amount: '', dateOfMonth: '5' });
+            setHasActiveSip(false);
+            fetch(`/api/sips?profile=${asset.profile}&instrumentId=${asset._id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0 && data[0].status === 'ACTIVE') {
+                        setSipForm({ amount: data[0].amount.toString(), dateOfMonth: data[0].dateOfMonth.toString() });
+                        setHasActiveSip(true);
+                    }
+                })
+                .catch(err => console.error('Failed to fetch SIP:', err));
+        }
+    };
+
+    const handleSaveSip = async () => {
+        if (!sipForm.amount || !sipForm.dateOfMonth) {
+            setSipSuccess('Please fill in amount and date.');
+            return;
+        }
+        setLoadingSip(true);
+        try {
+            const res = await fetch('/api/sips', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-portfolio-action': '1' },
+                body: JSON.stringify({
+                    profile: marketForm.profile,
+                    instrumentId: editingId,
+                    amount: sipForm.amount,
+                    dateOfMonth: sipForm.dateOfMonth
+                })
+            });
+            if (res.ok) {
+                setHasActiveSip(true);
+                setSipSuccess('SIP saved successfully!');
+                setTimeout(() => setSipSuccess(''), 3000);
+            } else {
+                setSipSuccess('Failed to save SIP.');
+            }
+        } catch (err) {
+            setSipSuccess('Failed to save SIP.');
+        } finally {
+            setLoadingSip(false);
+        }
+    };
+
+    const handleCancelSip = async () => {
+        setLoadingSip(true);
+        try {
+            const res = await fetch(`/api/sips?profile=${marketForm.profile}&instrumentId=${editingId}`, { 
+                method: 'DELETE',
+                headers: { 'x-portfolio-action': '1' }
+            });
+            if (res.ok) {
+                setHasActiveSip(false);
+                setSipForm({ amount: '', dateOfMonth: '5' });
+                setSipSuccess('SIP cancelled.');
+                setTimeout(() => setSipSuccess(''), 3000);
+            }
+        } catch (err) {
+            setSipSuccess('Failed to cancel SIP.');
+        } finally {
+            setLoadingSip(false);
+        }
     };
 
     const handleDelete = (asset: ManualAsset) => {
@@ -448,9 +518,9 @@ export default function AssetsPage() {
         try {
             if (deleteConfirmAsset.isMarket) {
                 const profileParam = deleteConfirmAsset.profile === 'Combined' ? '' : `?profile=${deleteConfirmAsset.profile}`;
-                await fetch(`/api/marketassets/${deleteConfirmAsset._id}${profileParam}`, { method: 'DELETE' });
+                await fetch(`/api/marketassets/${deleteConfirmAsset._id}${profileParam}`, { method: 'DELETE', headers: { 'x-portfolio-action': '1' } });
             } else {
-                await fetch(`/api/manualassets/${deleteConfirmAsset._id}`, { method: 'DELETE' });
+                await fetch(`/api/manualassets/${deleteConfirmAsset._id}`, { method: 'DELETE', headers: { 'x-portfolio-action': '1' } });
             }
             fetchAssets();
         } catch (err) {
@@ -657,13 +727,13 @@ export default function AssetsPage() {
                                         {asset.assetType === 'GOLD' && asset.price && (
                                             <div className={styles.detailRow}>
                                                 <span>Purchase Rate</span>
-                                                <span>₹{formatCurrency(asset.price)}/g</span>
+                                                <span>{formatCurrency(asset.price)}/g</span>
                                             </div>
                                         )}
                                         {asset.assetType === 'GOLD' && liveMetalsPrice.gold && (
                                             <div className={styles.detailRow}>
                                                 <span>Live Rate (24K)</span>
-                                                <span style={{ color: '#10b981', fontWeight: 600 }}>₹{formatCurrency(liveMetalsPrice.gold)}/g</span>
+                                                <span style={{ color: '#10b981', fontWeight: 600 }}>{formatCurrency(liveMetalsPrice.gold)}/g</span>
                                             </div>
                                         )}
                                         <div className={styles.detailRow}>
@@ -765,17 +835,17 @@ export default function AssetsPage() {
                         {isMarketType ? (
                             <form onSubmit={handleMarketSubmit}>
                                 {['GOLD', 'SILVER'].includes(form.assetType) ? (
-                                    <div className={styles.selectedBadge} style={{ marginBottom: '1rem', borderRadius: '12px', background: form.assetType === 'GOLD' ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.05) 100%)' : '#f2f7ff', border: form.assetType === 'GOLD' ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #1a5cff', color: form.assetType === 'GOLD' ? '#b45309' : '#1a5cff', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div className={styles.selectedBadge} style={{ marginBottom: '1rem', borderRadius: '12px', background: 'var(--bg-card-hover, rgba(255,255,255,0.02))', border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
-                                            <div style={{ fontWeight: 600, fontSize: '13px' }}>✓ Physical {form.assetType === 'GOLD' ? 'Gold (24K)' : 'Silver'}</div>
-                                            <div style={{ fontSize: '11px', color: form.assetType === 'GOLD' ? '#92400e' : '#4b5563', marginTop: '2px' }}>
+                                            <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>✓ Physical {form.assetType === 'GOLD' ? 'Gold (24K)' : 'Silver'}</div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                                                 Historical purchase cost basis remains fixed. Value tracks live market rates.
                                             </div>
                                         </div>
                                         {form.assetType === 'GOLD' && liveMetalsPrice.gold && (
                                             <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.8 }}>Live 24K Rate</div>
-                                                <div style={{ fontSize: '14px', fontWeight: 700, color: '#d97706' }}>₹{liveMetalsPrice.gold.toLocaleString('en-IN')}/g</div>
+                                                <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Live 24K Rate</div>
+                                                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>₹{liveMetalsPrice.gold.toLocaleString('en-IN')}/g</div>
                                             </div>
                                         )}
                                         {form.assetType === 'SILVER' && liveMetalsPrice.silver && (
@@ -845,13 +915,13 @@ export default function AssetsPage() {
                                     </div>
 
                                     <div className={styles.fieldGroup}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <label>{['SGB', 'GOLD'].includes(form.assetType) ? 'Purchase Price per Gram (₹/g)' : form.assetType === 'SILVER' ? 'Purchase Price per Gram (₹/g)' : 'Price per unit (₹)'}</label>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' }}>
+                                            <label style={{ marginBottom: 0 }}>{['SGB', 'GOLD'].includes(form.assetType) ? 'Purchase Price (₹/g)' : form.assetType === 'SILVER' ? 'Purchase Price (₹/g)' : 'Price per unit (₹)'}</label>
                                             {form.assetType === 'GOLD' && liveMetalsPrice.gold && (
-                                                <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>Live: ₹{liveMetalsPrice.gold.toLocaleString('en-IN')}/g</span>
+                                                <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>Live 24K Rate: ₹{liveMetalsPrice.gold.toLocaleString('en-IN')}/g</span>
                                             )}
                                             {form.assetType === 'SGB' && selectedInstrument?.currentPrice && (
-                                                <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>Live: ₹{selectedInstrument.currentPrice.toLocaleString('en-IN')}/g</span>
+                                                <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>Live Rate: ₹{selectedInstrument.currentPrice.toLocaleString('en-IN')}/g</span>
                                             )}
                                         </div>
                                         <div className={styles.inputWithSymbol}>
@@ -873,18 +943,18 @@ export default function AssetsPage() {
 
                                 {/* Live Breakdown Preview for Gold */}
                                 {form.assetType === 'GOLD' && parseFloat(marketForm.quantity) > 0 && parseFloat(marketForm.price) > 0 && (
-                                    <div style={{ marginTop: '1rem', padding: '12px 16px', background: 'rgba(245, 158, 11, 0.08)', borderRadius: '10px', border: '1px dashed rgba(245, 158, 11, 0.3)' }}>
-                                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#b45309', marginBottom: '6px' }}>Summary Preview</div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', fontSize: '12px' }}>
+                                    <div style={{ marginTop: '1.5rem', padding: '16px', background: 'var(--bg-card-hover, rgba(255,255,255,0.02))', borderRadius: '12px', border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))' }}>
+                                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>Summary Preview</div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', fontSize: '13px' }}>
                                             <div>
                                                 <span style={{ color: 'var(--text-muted)' }}>Invested: </span>
-                                                <strong>₹{((parseFloat(marketForm.quantity) * parseFloat(marketForm.price)) + parseFloat(marketForm.fees || '0')).toLocaleString('en-IN')}</strong>
+                                                <strong style={{ color: 'var(--text-primary)' }}>₹{((parseFloat(marketForm.quantity) * parseFloat(marketForm.price)) + parseFloat(marketForm.fees || '0')).toLocaleString('en-IN')}</strong>
                                             </div>
                                             {liveMetalsPrice.gold && (
                                                 <>
                                                     <div>
                                                         <span style={{ color: 'var(--text-muted)' }}>Current Value: </span>
-                                                        <strong>₹{(parseFloat(marketForm.quantity) * liveMetalsPrice.gold).toLocaleString('en-IN')}</strong>
+                                                        <strong style={{ color: 'var(--text-primary)' }}>₹{(parseFloat(marketForm.quantity) * liveMetalsPrice.gold).toLocaleString('en-IN')}</strong>
                                                     </div>
                                                     <div>
                                                         <span style={{ color: 'var(--text-muted)' }}>Est. P&L: </span>
@@ -903,6 +973,29 @@ export default function AssetsPage() {
                                                 </>
                                             )}
                                         </div>
+                                    </div>
+                                )}
+
+                                {['MUTUAL_FUND', 'STOCK', 'GOLD', 'ETF'].includes(form.assetType) && editingId && (
+                                    <div style={{ marginTop: '24px', padding: '16px', background: 'var(--bg-secondary, rgba(255,255,255,0.02))', borderRadius: '12px', border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))' }}>
+                                        <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--text-primary)' }}>Automated SIP</h4>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                            <div className={styles.fieldGroup}>
+                                                <label>Amount (₹)</label>
+                                                <input type="number" className={styles.inputField} value={sipForm.amount} onChange={e => setSipForm({...sipForm, amount: e.target.value})} placeholder="e.g. 5000" />
+                                            </div>
+                                            <div className={styles.fieldGroup}>
+                                                <label>Date of Month (1-28)</label>
+                                                <input type="number" className={styles.inputField} value={sipForm.dateOfMonth} onChange={e => setSipForm({...sipForm, dateOfMonth: e.target.value})} min="1" max="28" placeholder="e.g. 5" />
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                                            <button type="button" onClick={handleSaveSip} className={`${styles.btnAction} ${styles.btnPrimaryAction}`} disabled={loadingSip} style={{ flex: 1, padding: '8px', fontSize: '13px' }}>{loadingSip ? 'Saving...' : hasActiveSip ? 'Update SIP' : 'Setup SIP'}</button>
+                                            {hasActiveSip && (
+                                                <button type="button" onClick={handleCancelSip} className={`${styles.btnAction} ${styles.btnOutlineAction}`} disabled={loadingSip} style={{ flex: 1, borderColor: '#ef4444', color: '#ef4444', padding: '8px', fontSize: '13px' }}>Stop SIP</button>
+                                            )}
+                                        </div>
+                                        {sipSuccess && <div style={{ color: '#10b981', fontSize: '12px', marginTop: '12px', textAlign: 'center' }}>{sipSuccess}</div>}
                                     </div>
                                 )}
 

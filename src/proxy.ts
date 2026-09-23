@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
 
 
-export function proxy(req: NextRequest) {
+export async function proxy(req: NextRequest) {
     const token = req.cookies.get('portfolio-token')?.value;
     const { pathname } = req.nextUrl;
     const method = req.method;
@@ -24,6 +25,19 @@ export function proxy(req: NextRequest) {
     }
 
     if (!token) {
+        if (pathname.startsWith('/api/')) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        return NextResponse.redirect(new URL('/auth/login', req.url));
+    }
+
+    try {
+        const secretKey = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-jwt-secret-key-change-in-production' : '');
+        if (!secretKey) throw new Error('JWT_SECRET missing');
+        const secret = new TextEncoder().encode(secretKey);
+        await jwtVerify(token, secret);
+    } catch (err) {
+        // Invalid or expired token
         if (pathname.startsWith('/api/')) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

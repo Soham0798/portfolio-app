@@ -94,7 +94,7 @@ export default function InstrumentsPage() {
 
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'x-portfolio-action': '1', 'Content-Type': 'application/json' },
                 body: JSON.stringify(form),
             });
 
@@ -136,7 +136,7 @@ export default function InstrumentsPage() {
     const confirmDelete = async () => {
         if (!deleteConfirmId) return;
         try {
-            await fetch(`/api/instruments/${deleteConfirmId}`, { method: 'DELETE' });
+            await fetch(`/api/instruments/${deleteConfirmId}`, { method: 'DELETE', headers: { 'x-portfolio-action': '1' } });
             fetchInstruments();
         } catch (err) {
             console.error('Failed:', err);

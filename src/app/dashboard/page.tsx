@@ -133,7 +133,7 @@ export default function DashboardPage() {
             try {
                 const res = await fetch('/api/prices/refresh-user', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'x-portfolio-action': '1', 'Content-Type': 'application/json' },
                     body: JSON.stringify({ profileId: profile }),
                     signal,
                 });
@@ -163,7 +163,7 @@ export default function DashboardPage() {
         try {
             await fetch('/api/profile', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'x-portfolio-action': '1', 'Content-Type': 'application/json' },
                 body: JSON.stringify({ dob: promptDob, profile: profile === 'combined' ? 'default' : profile })
             });
             setShowAgePrompt(false);

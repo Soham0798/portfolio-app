@@ -28,6 +28,13 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+            return NextResponse.json(
+                { error: 'Account locked due to too many failed attempts. Try again in 15 minutes.' },
+                { status: 429 }
+            );
+        }
+
         let isValid = false;
         const [salt, storedHash] = user.password.split(':');
         if (salt && storedHash) {
@@ -36,15 +43,33 @@ export async function POST(req: NextRequest) {
         }
         
         if (!isValid) {
+            user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+            if (user.failedLoginAttempts >= 5) {
+                user.lockoutUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 mins lockout
+            }
+            await user.save();
+
             return NextResponse.json(
                 { error: 'Invalid credentials' },
                 { status: 401 }
             );
         }
 
+        // Reset lockout if successful
+        let needsSave = false;
+        if (user.failedLoginAttempts > 0 || user.lockoutUntil) {
+            user.failedLoginAttempts = 0;
+            user.lockoutUntil = null;
+            needsSave = true;
+        }
+
         // Auto-promote the admin or sameer account if they log in
         if ((user.username === 'admin' || user.username === 'sameer') && !user.isAdmin) {
             user.isAdmin = true;
+            needsSave = true;
+        }
+        
+        if (needsSave) {
             await user.save();
         }
 
@@ -56,6 +81,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             message: 'Login successful',
+            
             user: { id: user._id, username: user.username, isAdmin: user.isAdmin || false },
         });
     } catch (error) {
