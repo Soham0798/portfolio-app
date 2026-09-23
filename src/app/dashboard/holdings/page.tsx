@@ -128,6 +128,12 @@ export default function HoldingsPage() {
             name: h.name || h.tickerSymbol || 'SGB',
             currentValue: h.currentValue,
             totalInvested: h.totalInvested,
+            currentQty: h.currentQty,
+            avgBuyPrice: h.avgBuyPrice,
+            currentPrice: h.currentPrice,
+            dayGain: h.dayGain,
+            totalGain: h.totalGain,
+            tickerSymbol: h.tickerSymbol,
             updatedAt: new Date().toISOString(),
         }));
         
@@ -137,6 +143,12 @@ export default function HoldingsPage() {
             name: h.name || h.tickerSymbol || 'NPS',
             currentValue: h.currentValue,
             totalInvested: h.totalInvested,
+            currentQty: h.currentQty,
+            avgBuyPrice: h.avgBuyPrice,
+            currentPrice: h.currentPrice,
+            dayGain: h.dayGain,
+            totalGain: h.totalGain,
+            tickerSymbol: h.tickerSymbol,
             lifeCover: 0,
             updatedAt: new Date().toISOString(),
         }));
@@ -147,6 +159,12 @@ export default function HoldingsPage() {
             name: h.name || h.tickerSymbol || h.assetType,
             currentValue: h.currentValue,
             totalInvested: h.totalInvested,
+            currentQty: h.currentQty,
+            avgBuyPrice: h.avgBuyPrice,
+            currentPrice: h.currentPrice,
+            dayGain: h.dayGain,
+            totalGain: h.totalGain,
+            tickerSymbol: h.tickerSymbol,
             updatedAt: new Date().toISOString(),
         }));
         

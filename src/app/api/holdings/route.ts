@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
     const engineAssets = [
         ...holdings.map((h: any) => ({
             name: h.name, type: h.assetType, value: h.currentValue, cost: h.totalInvested,
-            isLiquid: h.assetType === 'ETF' || h.assetType === 'STOCK' || h.assetType === 'MUTUAL_FUND'
+            isLiquid: h.assetType === 'ETF' || h.assetType === 'STOCK' || h.assetType === 'MUTUAL_FUND' || h.assetType === 'GOLD'
         })),
         ...manualAssets.map((a: any) => ({
             name: a.name, type: a.assetType, value: a.currentValue, cost: a.totalInvested,

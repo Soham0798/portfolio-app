@@ -612,6 +612,24 @@ export default function AssetsPage() {
                                     </div>
 
                                     <div className={styles.details}>
+                                        {asset.assetType === 'GOLD' && asset.quantity && (
+                                            <div className={styles.detailRow}>
+                                                <span>Weight</span>
+                                                <span style={{ fontWeight: 600 }}>{asset.quantity} grams</span>
+                                            </div>
+                                        )}
+                                        {asset.assetType === 'GOLD' && asset.price && (
+                                            <div className={styles.detailRow}>
+                                                <span>Purchase Rate</span>
+                                                <span>₹{formatCurrency(asset.price)}/g</span>
+                                            </div>
+                                        )}
+                                        {asset.assetType === 'GOLD' && liveMetalsPrice.gold && (
+                                            <div className={styles.detailRow}>
+                                                <span>Live Rate (24K)</span>
+                                                <span style={{ color: '#10b981', fontWeight: 600 }}>₹{formatCurrency(liveMetalsPrice.gold)}/g</span>
+                                            </div>
+                                        )}
                                         <div className={styles.detailRow}>
                                             <span>Invested</span>
                                             <span>{formatCurrency(asset.totalInvested)}</span>
@@ -698,14 +716,7 @@ export default function AssetsPage() {
                                             setSearchQuery('');
                                             setSelectedInstrument(null);
                                             setSearchResults([]);
-                                            
-                                            if (t === 'GOLD' && liveMetalsPrice.gold) {
-                                                setMarketForm(prev => ({ ...prev, price: liveMetalsPrice.gold!.toString() }));
-                                            } else if (t === 'SILVER' && liveMetalsPrice.silver) {
-                                                setMarketForm(prev => ({ ...prev, price: liveMetalsPrice.silver!.toString() }));
-                                            } else {
-                                                setMarketForm(prev => ({ ...prev, price: '' }));
-                                            }
+                                            setMarketForm(prev => ({ ...prev, price: '' }));
                                         }}
                                     >
                                         {t === 'MUTUAL_FUND' ? 'MF' : t}
@@ -714,12 +725,29 @@ export default function AssetsPage() {
                             </div>
                         )}
 
-                        {/* ========== MARKET ASSET FORM (Stock / MF) ========== */}
+                        {/* ========== MARKET ASSET FORM (Stock / MF / SGB / Gold) ========== */}
                         {isMarketType ? (
                             <form onSubmit={handleMarketSubmit}>
                                 {['GOLD', 'SILVER'].includes(form.assetType) ? (
-                                    <div className={styles.selectedBadge} style={{ marginBottom: '1rem', borderRadius: '40px', background: '#f2f7ff', border: '1px solid #1a5cff', color: '#1a5cff' }}>
-                                        ✓ Physical {form.assetType === 'GOLD' ? 'Gold' : 'Silver'} (Live pricing)
+                                    <div className={styles.selectedBadge} style={{ marginBottom: '1rem', borderRadius: '12px', background: form.assetType === 'GOLD' ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.05) 100%)' : '#f2f7ff', border: form.assetType === 'GOLD' ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #1a5cff', color: form.assetType === 'GOLD' ? '#b45309' : '#1a5cff', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontWeight: 600, fontSize: '13px' }}>✓ Physical {form.assetType === 'GOLD' ? 'Gold (24K)' : 'Silver'}</div>
+                                            <div style={{ fontSize: '11px', color: form.assetType === 'GOLD' ? '#92400e' : '#4b5563', marginTop: '2px' }}>
+                                                Historical purchase cost basis remains fixed. Value tracks live market rates.
+                                            </div>
+                                        </div>
+                                        {form.assetType === 'GOLD' && liveMetalsPrice.gold && (
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.8 }}>Live 24K Rate</div>
+                                                <div style={{ fontSize: '14px', fontWeight: 700, color: '#d97706' }}>₹{liveMetalsPrice.gold.toLocaleString('en-IN')}/g</div>
+                                            </div>
+                                        )}
+                                        {form.assetType === 'SILVER' && liveMetalsPrice.silver && (
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.8 }}>Live Spot Rate</div>
+                                                <div style={{ fontSize: '14px', fontWeight: 700 }}>₹{liveMetalsPrice.silver.toLocaleString('en-IN')}/g</div>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <>
@@ -771,7 +799,7 @@ export default function AssetsPage() {
 
                                 <div className={styles.formGrid}>
                                     <div className={styles.fieldGroup}>
-                                        <label>Date</label>
+                                        <label>{form.assetType === 'GOLD' ? 'Purchase Date' : 'Date'}</label>
                                         <input type="date" className={styles.inputField} value={marketForm.date} onChange={(e) => setMarketForm({ ...marketForm, date: e.target.value })} required />
                                     </div>
 
@@ -782,7 +810,10 @@ export default function AssetsPage() {
 
                                     <div className={styles.fieldGroup}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <label>{['SGB', 'GOLD'].includes(form.assetType) ? 'Gold Rate (₹/gram)' : form.assetType === 'SILVER' ? 'Silver Rate (₹/gram)' : 'Price per unit (₹)'}</label>
+                                            <label>{['SGB', 'GOLD'].includes(form.assetType) ? 'Purchase Price per Gram (₹/g)' : form.assetType === 'SILVER' ? 'Purchase Price per Gram (₹/g)' : 'Price per unit (₹)'}</label>
+                                            {form.assetType === 'GOLD' && liveMetalsPrice.gold && (
+                                                <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>Live: ₹{liveMetalsPrice.gold.toLocaleString('en-IN')}/g</span>
+                                            )}
                                             {form.assetType === 'SGB' && selectedInstrument?.currentPrice && (
                                                 <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>Live: ₹{selectedInstrument.currentPrice.toLocaleString('en-IN')}/g</span>
                                             )}
@@ -803,6 +834,41 @@ export default function AssetsPage() {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Live Breakdown Preview for Gold */}
+                                {form.assetType === 'GOLD' && parseFloat(marketForm.quantity) > 0 && parseFloat(marketForm.price) > 0 && (
+                                    <div style={{ marginTop: '1rem', padding: '12px 16px', background: 'rgba(245, 158, 11, 0.08)', borderRadius: '10px', border: '1px dashed rgba(245, 158, 11, 0.3)' }}>
+                                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#b45309', marginBottom: '6px' }}>Summary Preview</div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', fontSize: '12px' }}>
+                                            <div>
+                                                <span style={{ color: 'var(--text-muted)' }}>Invested: </span>
+                                                <strong>₹{((parseFloat(marketForm.quantity) * parseFloat(marketForm.price)) + parseFloat(marketForm.fees || '0')).toLocaleString('en-IN')}</strong>
+                                            </div>
+                                            {liveMetalsPrice.gold && (
+                                                <>
+                                                    <div>
+                                                        <span style={{ color: 'var(--text-muted)' }}>Current Value: </span>
+                                                        <strong>₹{(parseFloat(marketForm.quantity) * liveMetalsPrice.gold).toLocaleString('en-IN')}</strong>
+                                                    </div>
+                                                    <div>
+                                                        <span style={{ color: 'var(--text-muted)' }}>Est. P&L: </span>
+                                                        {(() => {
+                                                            const invested = (parseFloat(marketForm.quantity) * parseFloat(marketForm.price)) + parseFloat(marketForm.fees || '0');
+                                                            const curVal = parseFloat(marketForm.quantity) * liveMetalsPrice.gold!;
+                                                            const pnl = curVal - invested;
+                                                            const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
+                                                            return (
+                                                                <strong style={{ color: pnl >= 0 ? '#10b981' : '#ef4444' }}>
+                                                                    {pnl >= 0 ? '+' : ''}₹{Math.round(pnl).toLocaleString('en-IN')} ({pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(1)}%)
+                                                                </strong>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className={styles.actionRow}>
                                     <button type="button" className={`${styles.btnAction} ${styles.btnOutlineAction}`} onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
