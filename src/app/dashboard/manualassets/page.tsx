@@ -36,6 +36,30 @@ interface SearchResult {
 const MANUAL_TYPES = ['FD', 'EPF', 'PPF', 'ULIP'];
 const MARKET_TYPES = ['STOCK', 'MUTUAL_FUND', 'SGB', 'NPS', 'GOLD', 'SILVER'];
 
+const HISTORICAL_GOLD_PRICES: Record<string, number> = {
+    '2026': 15700,
+    '2025': 10387,
+    '2024': 7791,
+    '2023': 6533,
+    '2022': 5267,
+    '2021': 4872,
+    '2020': 4865,
+    '2019': 3522,
+    '2018': 3144,
+    '2017': 2967,
+    '2016': 2862,
+    '2015': 2634,
+    '2014': 2801,
+    '2013': 2960,
+    '2012': 3105,
+    '2011': 2640,
+    '2010': 1850,
+    '2009': 1450,
+    '2008': 1250,
+    '2007': 1080,
+    '2006': 840,
+};
+
 export default function AssetsPage() {
     const { profile } = useProfile();
     const [assets, setAssets] = useState<ManualAsset[]>([]);
@@ -439,6 +463,18 @@ export default function AssetsPage() {
     const formatCurrency = (n: number) =>
         new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newDate = e.target.value;
+        const year = newDate.substring(0, 4);
+        
+        let newPrice = marketForm.price;
+        if (form.assetType === 'GOLD' && HISTORICAL_GOLD_PRICES[year]) {
+            newPrice = (HISTORICAL_GOLD_PRICES[year] / 10).toString();
+        }
+        
+        setMarketForm({ ...marketForm, date: newDate, price: newPrice });
+    };
+
     return (
         <div className={styles.page}>
             {deleteConfirmAsset && (
@@ -800,7 +836,7 @@ export default function AssetsPage() {
                                 <div className={styles.formGrid}>
                                     <div className={styles.fieldGroup}>
                                         <label>{form.assetType === 'GOLD' ? 'Purchase Date' : 'Date'}</label>
-                                        <input type="date" className={styles.inputField} value={marketForm.date} onChange={(e) => setMarketForm({ ...marketForm, date: e.target.value })} required />
+                                        <input type="date" className={styles.inputField} value={marketForm.date} onChange={handleDateChange} required />
                                     </div>
 
                                     <div className={styles.fieldGroup}>
